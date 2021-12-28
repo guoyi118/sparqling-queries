@@ -130,10 +130,17 @@ class Hypothesis:
     score_history = attr.ib(factory=list)
 
 def beam_search(model, preproc_item, beam_size, max_steps, strict_decoding=False):
+    # 需要
     inference_state, next_choices = model.begin_inference(preproc_item)
+    # inference_state is an object
+    # next_choices is [((int, tensor))] # int in next_choice is the choice # tensor is the score 
+
+
+    # model -> enc_dec.py 
+    # preproc_item -> encoder -> hidden -> decoder -> output
+
     beam = [Hypothesis(inference_state, next_choices)]
     finished = []
-    
     for step in range(max_steps):
         # Check if all beams are finished
         if len(finished) == beam_size:

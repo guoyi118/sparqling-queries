@@ -16,7 +16,7 @@
         augment_at_iter_shuffle_values: false,
         augment_at_iter_shuffle_sort_dir: false,
         augment_at_iter_shuffle_compsup_op: false,
-        bs: 6,
+        bs: 2,
         num_batch_accumulated: 4,
         pretrained_version: "bert",
         max_steps: 81000,
@@ -32,7 +32,7 @@
         use_graph_relations: true,
         use_type_relations: true,
         use_online_data_processing: true,
-        num_dataloading_workers: 3, # half of the batch size
+        num_dataloading_workers: 1, # half of the batch size
     },
 
     eval_name: "%s_beam_%d" % [self.name, self.eval_beam_size],

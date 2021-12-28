@@ -954,9 +954,14 @@ class BreakDecoder(torch.nn.Module):
         return losses
 
     def begin_inference(self, desc_enc):
+        # desc_enc is encoder output
+        # self.preproc.all_rules -> qdmr grammar rules
         rules_index = {v: idx for idx, v in enumerate(self.preproc.all_rules)}
         traversal = InferenceTreeTraversal(self, desc_enc, rules_index=rules_index)
+        # traversal is an object
         choices = traversal.step(None)
+        # choices is [((int, tensor))] 
+               
         return traversal, choices
 
     def _desc_attention(self, prev_state, desc_enc):

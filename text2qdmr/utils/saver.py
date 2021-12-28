@@ -24,9 +24,9 @@ class ArgsDict(dict):
 
 def load_checkpoint(item_dict, model_dir, map_location=None, step=None):
     """ item_dict: {"model": model, "opt1": opt1, ...}"""
-    path = os.path.join(model_dir, 'model_checkpoint')
-    if step is not None:
-        path += f'-{step:08d}'
+    path = os.path.join(model_dir, 'grappa-aug_model_checkpoint-00072000')
+    # if step is not None:
+    #     path += f'-{step:08d}'
     if os.path.exists(path):
         print("Loading model from %s" % path)
         checkpoint = torch.load(path, map_location=map_location)

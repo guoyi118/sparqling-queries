@@ -1,9 +1,10 @@
 import os
 import sys
 
-import corenlp
+from stanfordnlp.server import CoreNLPClient
 import requests
 
+# os.environ["CORENLP_HOME"] = r'text2qdmr/third_party/stanford-corenlp-full-2018-10-05'
 
 class CoreNLP:
     def __init__(self):
@@ -18,7 +19,8 @@ class CoreNLP:
 
                 Direct URL: http://nlp.stanford.edu/software/stanford-corenlp-full-2018-10-05.zip
                 Landing page: https://stanfordnlp.github.io/CoreNLP/''')
-        self.client = corenlp.CoreNLPClient()
+        
+        self.client = CoreNLPClxient()
 
     def __del__(self):
         self.client.stop()
@@ -42,5 +44,5 @@ _singleton = None
 def annotate(text, annotators=None, output_format=None, properties=None):
     global _singleton
     if not _singleton:
-        _singleton = CoreNLP()
+        _singleton = CoreNLPClient()
     return _singleton.annotate(text, annotators, output_format, properties)

@@ -176,6 +176,61 @@ def main():
             res_json = json.load(open(eval_output_path))
             print('exec', step, res_json['total_scores']['ex_val'], res_json['total_scores']['ex_test'])
 
+    elif args.mode == "oneshot":
+        if model_config_args:
+            config = json.loads(_jsonnet.evaluate_file(model_config_file, tla_codes={'args': model_config_args}))
+        else:
+            config = json.loads(_jsonnet.evaluate_file(model_config_file))
+            
+        model_preproc = registry.instantiate(
+            registry.lookup('model', config['model']).Preproc,
+            config['model'])
+        data = {}
+        for section in exp_config["eval_section"]:
+            print('Load dataset, {} part'.format(section))
+            orig_data = registry.construct('dataset', config['data'][section])
+            orig_data.examples = model_preproc.load_raw_dataset(section, paths=config['data'][section]['paths'])
+            orig_data.examples_with_name = {ex.full_name: ex for ex in orig_data.examples}
+            data[section] = orig_data
+
+        for step in exp_config["eval_steps"]:
+            infer_output_path = f"{exp_config['eval_output']}/{exp_config['eval_name']}-step{step}.infer"
+            if args.mode == "oneshot":
+                infer_config = InferConfig(
+                    model_config_file,
+                    model_config_args,
+                    logdir,
+                    exp_config["eval_section"],
+                    exp_config["eval_beam_size"],
+                    infer_output_path,
+                    step,
+                    strict_decoding=exp_config.get("eval_strict_decoding", False),
+                    limit=exp_config.get("limit", None),
+                    shuffle=exp_config.get("shuffle", False),
+                    part=exp_config.get("part", 'spider'),
+                    data=data,
+                )
+                infer.main(infer_config)
+
+            eval_output_path = f"{exp_config['eval_output']}/{exp_config['eval_name']}-step{step}.eval"
+            eval_config = EvalConfig(
+                model_config_file,
+                model_config_args,
+                logdir,
+                exp_config["eval_section"],
+                infer_output_path,
+                eval_output_path,
+                exp_config["eval_tb_dir"],
+                vis_dir=exp_config.get("vis_dir"),
+                part=exp_config.get("part", 'spider'),
+                data=data,
+                virtuoso_server=exp_config.get("virtuoso_server"),
+            )
+            eval_output_path = eval.main(eval_config)
+
+            res_json = json.load(open(eval_output_path))
+            print('exec', step, res_json['total_scores']['ex_val'], res_json['total_scores']['ex_test'])
+
 
 if __name__ == "__main__":
     main()

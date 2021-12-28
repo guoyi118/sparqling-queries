@@ -396,6 +396,7 @@ class InferenceTreeTraversal(TreeTraversal):
                 raise ValueError(action)
 
         assert not stack
+        print()
         return root, self.model.preproc.grammar.unparse(root, self.model.schema, self.model.value_unit_dict, self.model.column_data)
 
     def save_step_to_log(self, node_type, parent_h_idx, prev_action_emb_type, prev_action_emb_idx, count_steps=None):

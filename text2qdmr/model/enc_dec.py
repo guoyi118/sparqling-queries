@@ -145,6 +145,7 @@ class EncDecModel(torch.nn.Module):
                         f.write(json.dumps(item, cls=ComplexEncoder) + '\n')
 
         def load_raw_dataset(self, section, paths=None):
+            print(os.path.join(self.data_dir, section + '.jsonl'))
             dataset = [BreakItem(**json.loads(line, cls=ComplexDecoder))
                         for line in open(os.path.join(self.data_dir, section + '.jsonl'))]
             # load groundings properly
@@ -152,7 +153,6 @@ class EncDecModel(torch.nn.Module):
                 schemas, _ = load_tables(paths['tables_path'])
                 # load spider data
                 spider_data = json.load(open(paths['spider_path']))
-
             eval_graphs = {}
             for item in dataset:
                 if item.grounding != 'None':
@@ -179,7 +179,6 @@ class EncDecModel(torch.nn.Module):
                 for val_list in values:
                     val_list_new = [ValueUnit(**val_dict) for val_dict in val_list]
                     item.values.append(val_list_new)
-
             return dataset
 
         def load(self):
@@ -217,8 +216,9 @@ class EncDecModel(torch.nn.Module):
 
             return (enc_data_new, dec_data_new)
 
-        def dataset(self, section, two_datasets=False, config=None):  
+        def dataset(self, section, two_datasets=False, config=None): 
 
+             
             if config is not None and "use_online_data_processing" in config and config["use_online_data_processing"]:
                 self.config_data = config['data'][section]
                 schemas, _ = load_tables(self.config_data["paths"]["tables_path"])
@@ -228,12 +228,14 @@ class EncDecModel(torch.nn.Module):
                     dataset = TwoZippedDataset(raw_dataset, process_func=lambda item : self.process_in_dataloader(item, section=section, schemas=schemas))  
                 else:
                     dataset = ZippedDataset(raw_dataset, process_func=lambda item : self.process_in_dataloader(item, section=section, schemas=schemas)) 
-
+                
                 print("Loaded dataset size:", len(dataset))
                 return dataset
 
             if two_datasets:
                 return TwoZippedDataset(self.enc_preproc.dataset(section), self.dec_preproc.dataset(section))
+            
+            # we are here
             return ZippedDataset(self.enc_preproc.dataset(section), self.dec_preproc.dataset(section))
         
     def __init__(self, preproc, device, encoder, decoder):
@@ -319,8 +321,10 @@ class EncDecModel(torch.nn.Module):
 
     def begin_inference(self, preproc_item):
         enc_input, _ = preproc_item
+        #enc_input is question + schema linking +   schema  + general grounding
         if getattr(self.encoder, 'batched'):
             enc_state, = self.encoder([enc_input])
         else:
             enc_state = self.encoder(enc_input)
+        # enc_state is a vector
         return self.decoder.begin_inference(enc_state)

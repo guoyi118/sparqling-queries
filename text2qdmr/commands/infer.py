@@ -55,7 +55,9 @@ class Inferer:
                     orig_data = registry.construct('dataset', self.config['full_data'][section])
                 else:
                     orig_data = args.data[section]
+
                 preproc_data = self.model_preproc.dataset(section, two_datasets=self.config.get('full_data'))
+
                 preproc_data.part = args.part
 
                 if args.shuffle:
@@ -82,7 +84,23 @@ class Inferer:
                     strict_decoding=False, section='val'):
         for orig_item, preproc_item in tqdm.tqdm(zip(sliced_orig_data, sliced_preproc_data), total=len(sliced_orig_data)):
             assert orig_item.full_name == preproc_item[0]['full_name'], (orig_item.full_name, preproc_item[0]['full_name'])
+            
             decoded = self._infer_one(model, orig_item, preproc_item, beam_size, output_history, strict_decoding, section)
+            
+            # inputneed = open("logdir/grappa_qdmr_train_aug/input.infer", 'w')
+
+            # inputneed.write(
+            #     json.dumps({
+            #         'orig_item': str(orig_item),
+            #         'preproc_item': str(preproc_item),
+            #         'output_history': str(output_history),
+            #         'strict_decoding': str(strict_decoding),
+            #         'section': str(section),
+            #         'decoded': str(decoded),
+
+            #     }, cls=ComplexEncoder) + '\n')
+            # inputneed.flush()       
+
             output.write(
                 json.dumps({
                     'name': orig_item.full_name,
@@ -92,13 +110,14 @@ class Inferer:
             output.flush()
 
     def init_decoder_infer(self, model, data_item, section, strict_decoding):
+        # model.decoder -> qdmr_dec.py BreakDecoder
+
         # schema
         model.decoder.schema = data_item.schema
         # grounding choices
         _, validation_info = model.preproc.validate_item(data_item, section)
         model.decoder.value_unit_dict = validation_info[0]
         model.decoder.ids_to_grounding_choices = model.decoder.preproc.grammar.get_ids_to_grounding_choices(data_item.schema, validation_info[0])
-
         for rule, idx in model.decoder.rules_index.items():
             if rule[1] == 'NextStepSelect':
                 model.decoder.select_index = idx
@@ -138,19 +157,40 @@ class Inferer:
         return model
 
     def _infer_one(self, model, data_item, preproc_item, beam_size, output_history=False, strict_decoding=False, section='val'):
+        #data_item is for one question
+
+        # data_item
+        # dict_keys(['subset_idx', 'text', 'text_toks', 'text_toks_for_val', 'qdmr_code', 'qdmr_ops', 'qdmr_args', 'grounding', 'values', 'column_data', 'sql_code', 'schema', 'eval_graphs', 'orig_schema', 'orig_spider_entry', 'db_id', 'subset_name', 'full_name'])
+        
         model = self.init_decoder_infer(model, data_item, section, strict_decoding)
         
+        # preproc_item is the input of entire model
+        # it includes :
+        # raw question
+        # tokenized question
+        # schema linking
+        # database id
+        # column
+        # values
+        # general_grounding
+        # general_grounding_types
+        # BreakDecoderPreprocItem
+
+        #这以下都需要
         beams = decoder_utils.beam_search(
                 model, preproc_item, beam_size=beam_size, max_steps=1000, strict_decoding=strict_decoding)
+        # only one in beams
+
         decoded = []
-
-        for beam in beams:
+        
+        for beam in beams: # len(beams) = 1
             model_output, inferred_code = beam.inference_state.finalize()
-
+            # 一个 model_output 是tree 结构 qdmr
+            # inferred_code， 正常结构的qdmr
             decoded.append({
-                'orig_question': data_item.text,
-                'model_output': model_output,
-                'inferred_code': inferred_code,
+                'orig_question': data_item.text, #输入的问题
+                'model_output': model_output, #action sequence
+                'inferred_code': inferred_code, # qdmr
                 'score': beam.score,
                 **({
                        'choice_history': beam.choice_history,
