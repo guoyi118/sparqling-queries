@@ -1,0 +1,46 @@
+[2021-12-27T17:20:51] Logging to logdir/grappa_qdmr_train_aug/bs=6,lr=7.4e-04,bert_lr=3.0e-06,end_lr=0e0,att=1
+[2021-12-27T17:43:33] Logging to logdir/grappa_qdmr_train_aug/bs=6,lr=7.4e-04,bert_lr=3.0e-06,end_lr=0e0,att=1
+[2021-12-27T19:14:00] Logging to logdir/grappa_qdmr_train_aug/bs=6,lr=7.4e-04,bert_lr=3.0e-06,end_lr=0e0,att=1
+[2021-12-27T19:28:26] Logging to logdir/grappa_qdmr_train_aug/bs=6,lr=7.4e-04,bert_lr=3.0e-06,end_lr=0e0,att=1
+[2021-12-27T19:33:32] Logging to logdir/grappa_qdmr_train_aug/bs=6,lr=7.4e-04,bert_lr=3.0e-06,end_lr=0e0,att=1
+[2021-12-27T19:35:00] Logging to logdir/grappa_qdmr_train_aug/bs=6,lr=7.4e-04,bert_lr=3.0e-06,end_lr=0e0,att=1
+[2021-12-28T07:38:11] Logging to logdir/grappa_qdmr_train_aug/bs=6,lr=7.4e-04,bert_lr=3.0e-06,end_lr=0e0,att=1
+[2022-02-14T00:08:24] Logging to logdir/grappa_qdmr_train_aug/bs=6,lr=7.4e-04,bert_lr=3.0e-06,end_lr=0e0,att=1
+[2022-02-14T00:12:17] Logging to logdir/grappa_qdmr_train_aug/bs=6,lr=7.4e-04,bert_lr=3.0e-06,end_lr=0e0,att=1
+[2022-02-14T00:13:08] Running on git commit '274d179dfa0f503ea7fb316603d15bf2e342836e'
+[2022-02-14T00:13:09] Result of conda info:
+[2022-02-14T00:13:09] 
+     active environment : base
+    active env location : /home/sdq/miniconda3
+            shell level : 1
+       user config file : /home/sdq/.condarc
+ populated config files : /home/sdq/.condarc
+          conda version : 4.9.2
+    conda-build version : not installed
+         python version : 3.8.5.final.0
+       virtual packages : __cuda=10.2=0
+                          __glibc=2.23=0
+                          __unix=0=0
+                          __archspec=1=x86_64
+       base environment : /home/sdq/miniconda3  (writable)
+           channel URLs : https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/linux-64
+                          https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/noarch
+                          https://repo.anaconda.com/pkgs/main/linux-64
+                          https://repo.anaconda.com/pkgs/main/noarch
+                          https://repo.anaconda.com/pkgs/r/linux-64
+                          https://repo.anaconda.com/pkgs/r/noarch
+          package cache : /home/sdq/miniconda3/pkgs
+                          /home/sdq/.conda/pkgs
+       envs directories : /home/sdq/miniconda3/envs
+                          /home/sdq/.conda/envs
+               platform : linux-64
+             user-agent : conda/4.9.2 requests/2.24.0 CPython/3.8.5 Linux/4.15.0-29-generic ubuntu/16.04.5 glibc/2.23
+                UID:GID : 1001:1001
+             netrc file : None
+           offline mode : False
+
+
+[2022-02-14T00:13:09] pytorch version: 1.9.0+cu102
+[2022-02-14T00:13:09] transformers version: 4.12.5
+[2022-02-14T00:13:19] Step 0 stats, train: loss = 157.13460540771484
+[2022-02-14T00:13:21] Step 0 stats, val: loss = 171.99684143066406

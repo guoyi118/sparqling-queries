@@ -8,6 +8,9 @@ import attr
 import numpy as np
 from functools import lru_cache
 
+from higher.patch import monkeypatch as make_functional
+
+
 import torch
 from transformers import AutoModel, AutoTokenizer, AutoConfig
 
@@ -297,7 +300,7 @@ class BreakFullEncoderBertPreproc(abstract_preproc.AbstractPreproc):
 
         self.counted_db_ids = set()
         self.preprocessed_schemas = {}
-
+        
         if self.pretrained_version == 'bert':
             self.pretrained_modelname = 'bert-large-uncased-whole-word-masking'
         elif self.pretrained_version == 'grappa':
@@ -1059,8 +1062,8 @@ class BreakFullEncoderBert(torch.nn.Module):
         self.tokenizer = self.preproc.tokenizer
         self.bert_model.resize_token_embeddings(len(self.tokenizer))  # several tokens added
         self.use_bert_masks = self.preproc.use_bert_masks
-
-    def forward(self, descs):
+    # 为了让encoder的参数可以调整，forward里加入parameter，为了Knowledge editor
+    def forward(self, descs, parameter=None):
         batch_token_lists = []
         batch_id_to_retrieve_question = []
         batch_id_to_retrieve_column = []
@@ -1176,12 +1179,27 @@ class BreakFullEncoderBert(torch.nn.Module):
 
         if self.bert_token_type:
             tok_type_tensor = torch.LongTensor(tok_type_lists).to(self._device)
-            bert_output = self.bert_model(tokens_tensor,
-                                          attention_mask=att_masks_tensor, token_type_ids=tok_type_tensor, position_ids=position_ids_tensor)[0]
+            # 使用bert新参数
+            if parameter == None:
+                bert_output = self.bert_model(tokens_tensor,
+                                            attention_mask=att_masks_tensor, token_type_ids=tok_type_tensor, position_ids=position_ids_tensor)[0]
+            else:
+                fmodel = make_functional(self.bert_model).eval()
+                bert_output = fmodel(tokens_tensor,
+                            attention_mask=att_masks_tensor, token_type_ids=tok_type_tensor, position_ids=position_ids_tensor, params=parameter)[0]
+                    
         else:
-            bert_output = self.bert_model(tokens_tensor,
-                                          attention_mask=att_masks_tensor, position_ids=position_ids_tensor)[0]
+            if parameter == None:
+                bert_output = self.bert_model(tokens_tensor,
+                                            attention_mask=att_masks_tensor, position_ids=position_ids_tensor)[0]
+            else:
 
+                fmodel = make_functional(self.bert_model).eval()
+                bert_output = fmodel(tokens_tensor,
+                            attention_mask=att_masks_tensor, position_ids=position_ids_tensor, params=parameter)[0]
+
+                bert_output_no_parameter = self.bert_model(tokens_tensor,
+                                            attention_mask=att_masks_tensor, position_ids=position_ids_tensor)[0]
         enc_output = bert_output
         if not self.preproc.use_general_grounding:
             has_vals = [len(desc['tokenized_values'][grnd_idx]) for desc, grnd_idx in zip(descs, all_grnd_idx)]
@@ -1309,8 +1327,8 @@ class BreakFullEncoderBert(torch.nn.Module):
                     value_emb=None,
                     grnd_idx=0,
                 ))
-
-            return result
+            # return result
+            return result, bert_output
 
         assert len(long_seq_set) == 0  # remove them for now
 
@@ -1436,7 +1454,7 @@ class BreakFullEncoderBert(torch.nn.Module):
                 grnd_idx=0,
             ))
 
-        return result
+        return result, bert_output
 
     def check_bert_seq(self, toks):
         if toks[0] == self.tokenizer.cls_token and toks[-1] == self.tokenizer.sep_token:
@@ -1570,7 +1588,8 @@ class Bertokens:
 
         self.normalized_pieces = normalized_toks
         self.recovered_pieces = new_toks
-
+    
+    # schema linking is over here
     def bert_schema_linking(self, columns, tables, value_unit_dict=None):
         question_tokens = self.normalized_pieces
         column_tokens = [c.normalized_pieces for c in columns]

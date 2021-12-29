@@ -1,0 +1,76 @@
+ | Idx | Table      | Column | Primary Key | Foreign Key | 
+ | ----------- | ----------- | ----------- | ----------- | ----------- | 
+  | 0 |  | * |   |   | 
+ | 1 | **station** | id | + |   | 
+ | 2 |   | name |   |   | 
+ | 3 |   | lat |   |   | 
+ | 4 |   | long |   |   | 
+ | 5 |   | dock_count |   |   | 
+ | 6 |   | city |   |   | 
+ | 7 |   | installation_date |   |   | 
+ | 8 | **status** | station_id |   | --> 1 | 
+ | 9 |   | bikes_available |   |   | 
+ | 10 |   | docks_available |   |   | 
+ | 11 |   | time |   |   | 
+ | 12 | **trip** | id | + |   | 
+ | 13 |   | duration |   |   | 
+ | 14 |   | start_date |   |   | 
+ | 15 |   | start_station_name |   |   | 
+ | 16 |   | start_station_id |   |   | 
+ | 17 |   | end_date |   |   | 
+ | 18 |   | end_station_name |   |   | 
+ | 19 |   | end_station_id |   |   | 
+ | 20 |   | bike_id |   |   | 
+ | 21 |   | subscription_type |   |   | 
+ | 22 |   | zip_code |   |   | 
+ | 23 | **weather** | date |   |   | 
+ | 24 |   | max_temperature_f |   |   | 
+ | 25 |   | mean_temperature_f |   |   | 
+ | 26 |   | min_temperature_f |   |   | 
+ | 27 |   | max_dew_point_f |   |   | 
+ | 28 |   | mean_dew_point_f |   |   | 
+ | 29 |   | min_dew_point_f |   |   | 
+ | 30 |   | max_humidity |   |   | 
+ | 31 |   | mean_humidity |   |   | 
+ | 32 |   | min_humidity |   |   | 
+ | 33 |   | max_sea_level_pressure_inches |   |   | 
+ | 34 |   | mean_sea_level_pressure_inches |   |   | 
+ | 35 |   | min_sea_level_pressure_inches |   |   | 
+ | 36 |   | max_visibility_miles |   |   | 
+ | 37 |   | mean_visibility_miles |   |   | 
+ | 38 |   | min_visibility_miles |   |   | 
+ | 39 |   | max_wind_Speed_mph |   |   | 
+ | 40 |   | mean_wind_speed_mph |   |   | 
+ | 41 |   | max_gust_speed_mph |   |   | 
+ | 42 |   | precipitation_inches |   |   | 
+ | 43 |   | cloud_cover |   |   | 
+ | 44 |   | events |   |   | 
+ | 45 |   | wind_dir_degrees |   |   | 
+ | 46 |   | zip_code |   |   | 
+ 
+  | Index | Question  | SQL | gold QDMR | pred QDMR | Exec | SQL hardness |
+  | ----------- | ----------- | ----------- |  ----------- | ----------- | ----------- | ----------- | 
+ | SPIDER_train_111 | What are the names of stations that have latitude lower than 37.5? | SELECT name FROM station WHERE lat  <  37.5 | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​station:​lat, #1] <br>3. COMPARATIVE[#1, #2, comparative:​<:​37.5:​col:​station:​lat] <br>4. PROJECT[col:​station:​name, #3] <br> | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​station:​lat, #1] <br>3. COMPARATIVE[#1, #2, comparative:​<:​37.5:​col:​station:​lat] <br>4. PROJECT[col:​station:​name, #3] <br> | + | easy | 
+  | SPIDER_train_112 | What are the names of all stations with a latitude smaller than 37.5? | SELECT name FROM station WHERE lat  <  37.5 | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​station:​lat, #1] <br>3. COMPARATIVE[#1, #2, comparative:​<:​37.5:​col:​station:​lat] <br>4. PROJECT[col:​station:​name, #3] <br> | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​station:​lat, #1] <br>3. COMPARATIVE[#1, #2, comparative:​<:​37.5:​col:​station:​lat] <br>4. PROJECT[col:​station:​name, #3] <br> | + | easy | 
+  | SPIDER_train_113 | For each city, return the highest latitude among its stations. | SELECT city ,  max(lat) FROM station GROUP BY city | 1. SELECT[col:​station:​city] <br>2. PROJECT[tbl:​station, #1] <br>3. PROJECT[col:​station:​lat, #2] <br>4. GROUP[max, #3, #1] <br>5. UNION[#1, #4] <br> | 1. SELECT[col:​station:​city] <br>2. PROJECT[tbl:​station, #1] <br>3. PROJECT[col:​station:​lat, #2] <br>4. GROUP[max, #3, #1] <br>5. UNION[#1, #4] <br> | + | medium | 
+  | SPIDER_train_114 | For each city, what is the highest latitude for its stations? | SELECT city ,  max(lat) FROM station GROUP BY city | 1. SELECT[col:​station:​city] <br>2. PROJECT[tbl:​station, #1] <br>3. PROJECT[col:​station:​lat, #2] <br>4. GROUP[max, #3, #1] <br>5. UNION[#1, #4] <br> | 1. SELECT[col:​station:​city] <br>2. PROJECT[tbl:​station, #1] <br>3. PROJECT[col:​station:​lat, #2] <br>4. GROUP[max, #3, #1] <br>5. UNION[#1, #4] <br> | + | medium | 
+  | SPIDER_train_117 | What is the average latitude and longitude of stations located in San Jose city? | SELECT avg(lat) ,  avg(long) FROM station WHERE city  =  "San Jose" | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​station:​city, #1] <br>3. COMPARATIVE[#1, #2, comparative:​=:​San Jose:​col:​station:​city] <br>4. PROJECT[col:​station:​lat, #3] <br>5. PROJECT[col:​station:​long, #3] <br>6. AGGREGATE[avg, #4] <br>7. AGGREGATE[avg, #5] <br>8. UNION[#6, #7] <br> | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​station:​city, #1] <br>3. COMPARATIVE[#1, #2, comparative:​=:​San Jose:​col:​station:​city] <br>4. PROJECT[col:​station:​lat, #3] <br>5. PROJECT[col:​station:​long, #3] <br>6. AGGREGATE[avg, #4] <br>7. AGGREGATE[avg, #5] <br>8. UNION[#6, #7] <br> | + | medium | 
+  | SPIDER_train_119 | What is the id of the trip that has the shortest duration? | SELECT id FROM trip ORDER BY duration LIMIT 1 | 1. SELECT[tbl:​trip] <br>2. PROJECT[col:​trip:​duration, #1] <br>3. SUPERLATIVE[comparative:​min:​None, #1, #2] <br>4. PROJECT[col:​trip:​id, #3] <br> | 1. SELECT[tbl:​trip] <br>2. PROJECT[col:​trip:​duration, #1] <br>3. SUPERLATIVE[comparative:​min:​None, #1, #2] <br>4. PROJECT[col:​trip:​id, #3] <br> | + | medium | 
+  | SPIDER_train_122 | What is the total and maximum duration for all trips with the bike id 636? | SELECT sum(duration) ,  max(duration) FROM trip WHERE bike_id  =  636 | 1. SELECT[tbl:​trip] <br>2. PROJECT[col:​trip:​bike_id, #1] <br>3. PROJECT[col:​trip:​bike_id, #2] <br>4. COMPARATIVE[#1, #3, comparative:​=:​636:​col:​trip:​bike_id] <br>5. PROJECT[col:​trip:​duration, #4] <br>6. AGGREGATE[sum, #5] <br>7. AGGREGATE[max, #5] <br>8. UNION[#6, #7] <br> | 1. SELECT[tbl:​trip] <br>2. PROJECT[col:​trip:​bike_id, #1] <br>3. PROJECT[col:​trip:​bike_id, #2] <br>4. COMPARATIVE[#1, #3, comparative:​=:​636:​col:​trip:​bike_id] <br>5. PROJECT[col:​trip:​duration, #4] <br>6. AGGREGATE[sum, #5] <br>7. AGGREGATE[max, #5] <br>8. UNION[#6, #7] <br> | + | medium | 
+  | SPIDER_train_126 | How many different bike ids are there? | SELECT count(DISTINCT bike_id) FROM trip | 1. SELECT[col:​trip:​bike_id] <br>2.*(distinct)* PROJECT[different #REF, #1] <br>3. AGGREGATE[count, #2] <br> | 1. SELECT[col:​trip:​bike_id] <br>2.*(distinct)* PROJECT[None, #1] <br>3. AGGREGATE[count, #2] <br> | + | easy | 
+  | SPIDER_train_128 | How many different cities have these stations? | SELECT count(DISTINCT city) FROM station | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​station:​city, #1] <br>3.*(distinct)* PROJECT[different #REF, #2] <br>4. AGGREGATE[count, #3] <br> | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​station:​city, #1] <br>3.*(distinct)* PROJECT[None, #2] <br>4. AGGREGATE[count, #3] <br> | + | easy | 
+  | SPIDER_train_129 | How many stations does Mountain View city has? | SELECT COUNT(*) FROM station WHERE city  =  "Mountain View" | 1. SELECT[val:​station:​city:​Mountain View] <br>2. PROJECT[tbl:​station, #1] <br>3. AGGREGATE[count, #2] <br> | 1. SELECT[val:​station:​city:​Mountain View] <br>2. PROJECT[tbl:​station, #1] <br>3. AGGREGATE[count, #2] <br> | + | easy | 
+  | SPIDER_train_130 | How many stations are in Mountain View? | SELECT COUNT(*) FROM station WHERE city  =  "Mountain View" | 1. SELECT[tbl:​station] <br>2. FILTER[#1, comparative:​=:​Mountain View:​col:​station:​city] <br>3. AGGREGATE[count, #2] <br> | 1. SELECT[tbl:​station] <br>2. COMPARATIVE[#1, #1, comparative:​=:​Mountain View:​col:​station:​city] <br>3. AGGREGATE[count, #2] <br> | + | easy | 
+  | SPIDER_train_131 | Return the unique name for stations that have ever had 7 bikes available. | SELECT DISTINCT T1.name FROM station AS T1 JOIN status AS T2 ON T1.id  =  T2.station_id WHERE T2.bikes_available  =  7 | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​status:​bikes_available, #1] <br>3. GROUP[col:​status:​bikes_available, #2, #1] <br>4. COMPARATIVE[#1, #3, comparative:​=:​7:​col:​status:​bikes_available] <br>5. PROJECT[col:​station:​name, #4] <br> | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​status:​bikes_available, #1] <br>3. GROUP[sum, #2, #1] <br>4. COMPARATIVE[#1, #3, comparative:​=:​7:​col:​status:​bikes_available] <br>5. PROJECT[col:​station:​name, #4] <br> | + | medium | 
+  | SPIDER_train_132 | What are the different names for each station that has ever had 7 bikes available? | SELECT DISTINCT T1.name FROM station AS T1 JOIN status AS T2 ON T1.id  =  T2.station_id WHERE T2.bikes_available  =  7 | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​status:​bikes_available, #1] <br>3. COMPARATIVE[#1, #2, comparative:​=:​7:​col:​status:​bikes_available] <br>4. PROJECT[col:​station:​name, #3] <br> | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​status:​bikes_available, #1] <br>3. COMPARATIVE[#1, #2, comparative:​=:​7:​col:​status:​bikes_available] <br>4. PROJECT[col:​station:​name, #3] <br> | + | medium | 
+  | SPIDER_train_151 | What is the average longitude of stations that never had bike availability more than 10? | SELECT avg(long) FROM station WHERE id NOT IN (SELECT station_id FROM status GROUP BY station_id HAVING max(bikes_available)  >  10) | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​status:​bikes_available, #1] <br>3. COMPARATIVE[#1, #2, comparative:​>:​10:​col:​status:​bikes_available] <br>4. DISCARD[#1, #3] <br>5. PROJECT[col:​station:​long, #4] <br>6. AGGREGATE[avg, #5] <br> | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​status:​bikes_available, #1] <br>3. COMPARATIVE[#1, #2, comparative:​>:​10:​col:​status:​bikes_available] <br>4. DISCARD[#1, #3] <br>5. PROJECT[col:​station:​long, #4] <br>6. AGGREGATE[avg, #5] <br> | + | extra | 
+  | SPIDER_train_173 | What are the name, latitude, and city of the station with the lowest latitude? | SELECT name ,  lat ,  city FROM station ORDER BY lat LIMIT 1 | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​station:​lat, #1] <br>3. COMPARATIVE[#1, #2, comparative:​min:​None] <br>4. PROJECT[col:​station:​name, #3] <br>5. PROJECT[col:​station:​lat, #3] <br>6. PROJECT[col:​station:​city, #3] <br>7. UNION[#4, #5, #6] <br> | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​station:​lat, #1] <br>3. SUPERLATIVE[comparative:​min:​None, #1, #2] <br>4. PROJECT[col:​station:​name, #3] <br>5. PROJECT[col:​station:​lat, #3] <br>6. PROJECT[col:​station:​city, #3] <br>7. UNION[#4, #5, #6] <br> | + | medium | 
+  | SPIDER_train_177 | List the name and the number of stations for all the cities that have at least 15 stations. | SELECT city ,  COUNT(*) FROM station GROUP BY city HAVING COUNT(*)  >=  15 | 1. SELECT[col:​station:​city] <br>2. PROJECT[tbl:​station, #1] <br>3. GROUP[count, #2, #1] <br>4. COMPARATIVE[#1, #3, comparative:​>=:​15] <br>5. PROJECT[col:​station:​city, #4] <br>6. PROJECT[tbl:​station, #4] <br>7. GROUP[count, #6, #4] <br>8. UNION[#5, #7] <br> | 1. SELECT[col:​station:​city] <br>2. PROJECT[tbl:​station, #1] <br>3. GROUP[count, #2, #1] <br>4. COMPARATIVE[#1, #3, comparative:​>=:​15] <br>5. PROJECT[col:​station:​city, #4] <br>6. PROJECT[tbl:​station, #4] <br>7. GROUP[count, #6, #4] <br>8. UNION[#5, #7] <br> | + | medium | 
+  | SPIDER_train_178 | What is the name of every city that has at least 15 stations and how many stations does it have? | SELECT city ,  COUNT(*) FROM station GROUP BY city HAVING COUNT(*)  >=  15 | 1. SELECT[col:​station:​city] <br>2. PROJECT[tbl:​station, #1] <br>3. GROUP[count, #2, #1] <br>4. COMPARATIVE[#1, #3, comparative:​>=:​15] <br>5. PROJECT[col:​station:​city, #4] <br>6. PROJECT[tbl:​station, #4] <br>7. GROUP[count, #6, #4] <br>8. UNION[#5, #7] <br> | 1. SELECT[col:​station:​city] <br>2. PROJECT[tbl:​station, #1] <br>3. GROUP[count, #2, #1] <br>4. COMPARATIVE[#1, #3, comparative:​>=:​15] <br>5. PROJECT[col:​station:​city, #4] <br>6. PROJECT[tbl:​station, #4] <br>7. GROUP[count, #6, #4] <br>8. UNION[#5, #7] <br> | + | medium | 
+  | SPIDER_train_183 | List all the cities in a decreasing order of each city's stations' highest latitude. | SELECT city FROM station GROUP BY city ORDER BY max(lat) DESC | 1. SELECT[col:​station:​city] <br>2. PROJECT[tbl:​station, #1] <br>3. PROJECT[col:​station:​lat, #2] <br>4. GROUP[max, #3, #1] <br>5. SORT[#1, #4, sortdir:​descending] <br> | 1. SELECT[col:​station:​city] <br>2. PROJECT[tbl:​station, #1] <br>3. PROJECT[col:​station:​lat, #2] <br>4. GROUP[max, #3, #1] <br>5. SORT[#1, #4, sortdir:​descending] <br> | + | medium | 
+  | SPIDER_train_184 | For each city, list their names in decreasing order by their highest station latitude. | SELECT city FROM station GROUP BY city ORDER BY max(lat) DESC | 1. SELECT[col:​station:​city] <br>2. PROJECT[col:​station:​city, #1] <br>3. PROJECT[tbl:​station, #1] <br>4. PROJECT[col:​station:​lat, #3] <br>5. GROUP[max, #4, #1] <br>6. SORT[#2, #5, sortdir:​descending] <br> | 1. SELECT[col:​station:​city] <br>2. PROJECT[col:​station:​city, #1] <br>3. PROJECT[tbl:​station, #1] <br>4. PROJECT[col:​station:​lat, #3] <br>5. GROUP[max, #4, #1] <br>6. SORT[#2, #5, sortdir:​descending] <br> | + | medium | 
+  | SPIDER_train_193 | List all the distinct stations from which a trip of duration below 100 started. | SELECT DISTINCT start_station_name FROM trip WHERE duration  <  100 | 1. SELECT[col:​trip:​start_station_name] <br>2. PROJECT[tbl:​trip, #1] <br>3. PROJECT[col:​trip:​duration, #2] <br>4. COMPARATIVE[#1, #3, comparative:​<:​100:​col:​trip:​duration] <br>5.*(distinct)* PROJECT[distinct #REF, #4] <br> | 1. SELECT[col:​trip:​start_station_name] <br>2. PROJECT[tbl:​trip, #1] <br>3. PROJECT[col:​trip:​duration, #2] <br>4. COMPARATIVE[#1, #3, comparative:​<:​100:​col:​trip:​duration] <br>5.*(distinct)* PROJECT[None, #4] <br> | + | easy | 
+  | SPIDER_train_203 | What are the id and name of the stations that have ever had more than 12 bikes available? | SELECT DISTINCT T1.id ,  T1.name FROM station AS T1 JOIN status AS T2 ON T1.id  =  T2.station_id WHERE T2.bikes_available  >  12 | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​status:​bikes_available, #1] <br>3. GROUP[col:​status:​bikes_available, #2, #1] <br>4. COMPARATIVE[#1, #3, comparative:​>:​12:​col:​status:​bikes_available] <br>5. PROJECT[col:​station:​id, #4] <br>6. PROJECT[col:​station:​name, #4] <br>7. UNION[#5, #6] <br> | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​status:​bikes_available, #1] <br>3. GROUP[sum, #2, #1] <br>4. COMPARATIVE[#1, #3, comparative:​>:​12:​col:​status:​bikes_available] <br>5. PROJECT[col:​station:​id, #4] <br>6. PROJECT[col:​station:​name, #4] <br>7. UNION[#5, #6] <br> | + | medium | 
+  | SPIDER_train_204 | What are the different ids and names of the stations that have had more than 12 bikes available? | SELECT DISTINCT T1.id ,  T1.name FROM station AS T1 JOIN status AS T2 ON T1.id  =  T2.station_id WHERE T2.bikes_available  >  12 | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​status:​bikes_available, #1] <br>3. COMPARATIVE[#1, #2, comparative:​>:​12:​col:​status:​bikes_available] <br>4.*(distinct)* PROJECT[col:​station:​id, #3] <br>5.*(distinct)* PROJECT[col:​station:​name, #3] <br>6. UNION[#4, #5] <br> | 1. SELECT[tbl:​station] <br>2. PROJECT[col:​status:​bikes_available, #1] <br>3. COMPARATIVE[#1, #2, comparative:​>:​12:​col:​status:​bikes_available] <br>4.*(distinct)* PROJECT[col:​station:​id, #3] <br>5.*(distinct)* PROJECT[col:​station:​name, #3] <br>6. UNION[#4, #5] <br> | + | medium | 
+ ***
+ Exec acc: **1.0000**

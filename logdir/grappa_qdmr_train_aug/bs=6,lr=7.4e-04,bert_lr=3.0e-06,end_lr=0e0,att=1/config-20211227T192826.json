@@ -1,0 +1,179 @@
+{
+    "data": {
+        "test": {
+            "extract_value": {
+                "matching": false,
+                "max_values_from_database": 25
+            },
+            "name": "qdmr",
+            "partition": "test",
+            "paths": {
+                "break_logic_form_path": "data/break/logical-forms/test_spider.csv",
+                "db_path": "data/spider/database",
+                "extracted_value_path": "",
+                "grounding_path": "",
+                "spider_path": "data/spider/dev.json",
+                "tables_path": [
+                    "data/spider/tables.json"
+                ]
+            }
+        },
+        "train": {
+            "augment_at_iter_shuffle_columns": true,
+            "augment_at_iter_shuffle_compsup_op": true,
+            "augment_at_iter_shuffle_qdmr_ordering": false,
+            "augment_at_iter_shuffle_sort_dir": true,
+            "augment_at_iter_shuffle_tables": true,
+            "augment_at_iter_shuffle_values": true,
+            "extract_value": {
+                "max_values_from_database": 25,
+                "value_order": "sort"
+            },
+            "name": "qdmr",
+            "partition": "train",
+            "paths": {
+                "break_logic_form_path": "data/break/logical-forms-fixed/train_spider.csv",
+                "db_path": "data/spider/database",
+                "extracted_value_path": "",
+                "grounding_path": "data/break/groundings/grnd_list_positive_train.json",
+                "spider_path": "data/spider/train_spider.json",
+                "tables_path": [
+                    "data/spider/tables.json"
+                ]
+            }
+        },
+        "val": {
+            "extract_value": {
+                "matching": false,
+                "max_values_from_database": 25
+            },
+            "name": "qdmr",
+            "partition": "dev",
+            "paths": {
+                "break_logic_form_path": "data/break/logical-forms-fixed/dev_spider.csv",
+                "db_path": "data/spider/database",
+                "extracted_value_path": "",
+                "grounding_path": "data/break/groundings/grnd_list_positive_dev.json",
+                "spider_path": "data/spider/dev.json",
+                "tables_path": [
+                    "data/spider/tables.json"
+                ]
+            }
+        }
+    },
+    "log": {
+        "reopen_to_flush": true
+    },
+    "lr_scheduler": {
+        "decay_steps": 70875,
+        "end_lr": 0,
+        "name": "bert_warmup_polynomial_group",
+        "num_warmup_steps": 10125,
+        "power": 0.5,
+        "start_lr": 0.001,
+        "start_lrs": [
+            0.000744,
+            3e-06
+        ]
+    },
+    "model": {
+        "decoder": {
+            "desc_attn": "mha",
+            "dropout": 0.20687225956012834,
+            "enc_recurrent_size": 1024,
+            "exclude_rules_loss": [
+                "SupUnknownOp",
+                "UnknownOp",
+                "UnknownColumnGrounding"
+            ],
+            "loss_type": "label_smooth",
+            "name": "text2qdmr",
+            "recurrent_size": 512,
+            "share_pointer_type": "dotprod",
+            "share_pointers": true,
+            "use_align_loss": false,
+            "use_align_mat": true
+        },
+        "decoder_preproc": {
+            "grammar": {
+                "name": "qdmr",
+                "version": 1
+            },
+            "save_path": "text2qdmr/preproc_data/grappa_qdmr_train,emb=bert,cvlink",
+            "use_seq_elem_rules": true
+        },
+        "encoder": {
+            "bert_token_type": false,
+            "include_in_memory": [
+                "question",
+                "grounding"
+            ],
+            "name": "text2qdmr",
+            "summarize_header": "avg",
+            "update_config": {
+                "cc_foreign_key": true,
+                "cc_table_match": true,
+                "ct_foreign_key": true,
+                "ct_table_match": true,
+                "cv_link": false,
+                "default_graph_link": false,
+                "default_link_and_graph": false,
+                "full_grnd_link": false,
+                "merge_sc_link": false,
+                "name": "relational_transformer",
+                "num_heads": 8,
+                "num_layers": 8,
+                "qv_default": true,
+                "qv_token_match": true,
+                "sc_link": true,
+                "tc_foreign_key": true,
+                "tc_table_match": true,
+                "tt_foreign_key": true
+            },
+            "use_relations": true
+        },
+        "encoder_preproc": {
+            "add_cellmatch": false,
+            "compute_cv_link": false,
+            "compute_sc_link": true,
+            "construct_general_grounding": false,
+            "db_path": "data/spider/database",
+            "fix_issue_16_primary_keys": true,
+            "include_table_name_in_column": false,
+            "merge_sc_link": false,
+            "pretrained_version": "grappa",
+            "save_path": "text2qdmr/preproc_data/grappa_qdmr_train,emb=bert,cvlink",
+            "use_bert_masks": false,
+            "use_bert_unlimited_length": false,
+            "use_column_type": false,
+            "use_general_grounding": true,
+            "use_graph_relations": true,
+            "use_type_relations": true
+        },
+        "name": "EncDec"
+    },
+    "model_name": "bs=6,lr=7.4e-04,bert_lr=3.0e-06,end_lr=0e0,att=1",
+    "num_dataloading_workers": 3,
+    "optimizer": {
+        "bert_lr": 0,
+        "lr": 0,
+        "name": "bertAdamw"
+    },
+    "train": {
+        "batch_size": 6,
+        "clip_grad": 1,
+        "data_seed": 1,
+        "eval_batch_size": 50,
+        "eval_every_n": 100,
+        "init_seed": 1,
+        "keep_every_n": 1000,
+        "max_keep": 12,
+        "max_steps": 81000,
+        "model_seed": 1,
+        "num_batch_accumulated": 4,
+        "num_eval_items": 50,
+        "report_every_n": 10,
+        "save_every_n": 100
+    },
+    "use_online_data_processing": true
+}

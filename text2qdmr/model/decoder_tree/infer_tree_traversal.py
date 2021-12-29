@@ -1,7 +1,7 @@
 import attr
 import pyrsistent
 import torch
-
+import time
 from text2qdmr.model.decoder_tree.tree_traversal import TreeTraversal
 from text2qdmr.model.decoder_tree.infer_rules import *
 from text2qdmr.model.modules import decoder_utils
@@ -49,7 +49,7 @@ class InferenceTreeTraversal(TreeTraversal):
     class InferHandler(TreeTraversal.Handler):
         handlers = {}
 
-    def __init__(self, model, desc_enc, example=None, rules_index=None):
+    def __init__(self, model, desc_enc, example=None, rules_index=None, parameter=None):
         if model is None:
             return
         super().__init__(model.preproc, desc_enc, rules_index)
@@ -73,6 +73,8 @@ class InferenceTreeTraversal(TreeTraversal):
         self.example = example
         self.actions = pyrsistent.pvector()
         self.count_steps = 0
+        self.parameter = parameter
+
 
     def clone(self):
         super_clone = super().clone()
@@ -155,7 +157,7 @@ class InferenceTreeTraversal(TreeTraversal):
             grounding.append([output])
         return grounding
 
-    def step(self, last_choice, extra_choice_info=None, strict_decoding=False):
+    def step(self, last_choice, extra_choice_info=None, strict_decoding=False, rule_parameter=None):
         # update step history and compute current groundings
         if strict_decoding:
             if self.cur_item.step_history is None:
@@ -171,7 +173,7 @@ class InferenceTreeTraversal(TreeTraversal):
             else:
                 step_history = self.cur_item.step_history + [(self.cur_item.node_type, last_choice)]
                 self.cur_item = attr.evolve(self.cur_item, step_history=step_history)
-        return super().step(last_choice, extra_choice_info)
+        return super().step(last_choice, extra_choice_info, rule_parameter)
 
     def update_using_last_choice(self, last_choice, extra_choice_info):
         super().update_using_last_choice(last_choice, extra_choice_info)
@@ -223,17 +225,28 @@ class InferenceTreeTraversal(TreeTraversal):
         TreeTraversal._update_prev_action_emb_gen_ref(self, last_choice, extra_choice_info)
 
     @InferHandler.register_handler(TreeTraversal.State.SUM_TYPE_INQUIRE)
-    def process_sum_inquire(self, last_choice):
+    def process_sum_inquire(self, last_choice, rule_parameter=None):
         # 1. ApplyRule, like expr -> Call
         # a. Ask which one to choose
-        output, self.recurrent_state, rule_logits = self.model.apply_rule(
-            self.cur_item.node_type,
-            self.recurrent_state,
-            self.prev_action_emb, self.prev_action_emb_type, self.prev_action_emb_idx,
-            self.cur_item.parent_h, self.cur_item.parent_h_idx,
-            self.cur_item.parent_action_emb,
-            self.desc_enc,
-        )
+        if rule_parameter is not None:
+            output, self.recurrent_state, rule_logits = self.model.apply_rule(
+                self.cur_item.node_type,
+                self.recurrent_state,
+                self.prev_action_emb, self.prev_action_emb_type, self.prev_action_emb_idx,
+                self.cur_item.parent_h, self.cur_item.parent_h_idx,
+                self.cur_item.parent_action_emb,
+                self.desc_enc,
+                parameter=rule_parameter
+            )
+        else:
+            output, self.recurrent_state, rule_logits = self.model.apply_rule(
+                self.cur_item.node_type,
+                self.recurrent_state,
+                self.prev_action_emb, self.prev_action_emb_type, self.prev_action_emb_idx,
+                self.cur_item.parent_h, self.cur_item.parent_h_idx,
+                self.cur_item.parent_action_emb,
+                self.desc_enc,
+            )
 
         super().process_sum_inquire(last_choice)
         self.cur_item = attr.evolve(self.cur_item, 
@@ -251,7 +264,7 @@ class InferenceTreeTraversal(TreeTraversal):
         return choice, False
 
     @InferHandler.register_handler(TreeTraversal.State.SUM_TYPE_APPLY)
-    def process_sum_apply(self, last_choice):
+    def process_sum_apply(self, last_choice,rule_parameter=None):
         # b. Add action, prepare for #2
         super().process_sum_apply(last_choice)
         self.cur_item = attr.evolve(self.cur_item,
@@ -259,7 +272,7 @@ class InferenceTreeTraversal(TreeTraversal):
         return None, True
 
     @InferHandler.register_handler(TreeTraversal.State.CHILDREN_INQUIRE)
-    def process_children_inquire(self, last_choice):
+    def process_children_inquire(self, last_choice, rule_parameter=None):
         # 2. ApplyRule, like Call -> expr[func] expr*[args] keyword*[keywords]
         # Check if we have no children
         type_info = self.preproc.ast_wrapper.singular_types[
@@ -273,7 +286,6 @@ class InferenceTreeTraversal(TreeTraversal):
                 return None, False
 
         super().process_children_inquire(last_choice)
-
         # a. Ask about presence
         output, self.recurrent_state, rule_logits = self.model.apply_rule(
             self.cur_item.node_type,
@@ -297,7 +309,7 @@ class InferenceTreeTraversal(TreeTraversal):
         return choice, False
 
     @InferHandler.register_handler(TreeTraversal.State.GENERAL_POINTER_INQUIRE)
-    def process_general_pointer_inquire(self, last_choice):
+    def process_general_pointer_inquire(self, last_choice, rule_parameter=None):
         # a. Ask which one to choose
         compute_pointer = self.model.compute_pointer_with_align if self.model.use_align_mat else self.model.compute_pointer
         output, self.recurrent_state, logits, _ = compute_pointer(
@@ -338,7 +350,7 @@ class InferenceTreeTraversal(TreeTraversal):
         return pointer_choice, False
 
     @InferHandler.register_handler(TreeTraversal.State.REF_INQUIRE)
-    def process_ref_inquire(self, last_choice):
+    def process_ref_inquire(self, last_choice, rule_parameter=None):
         output, self.recurrent_state, ref_logits = self.model.gen_ref(
             self.cur_item.node_type,
             self.recurrent_state,
@@ -396,7 +408,10 @@ class InferenceTreeTraversal(TreeTraversal):
                 raise ValueError(action)
 
         assert not stack
-        print()
+        # print('~~~~~~~~~self.actions~~~~~~~~~~~~')
+        # print(self.actions)
+        # self actions 是模型输出的结果
+        # self.model.preproc.grammar.unparse ->model.grammar.qdmr.unparse
         return root, self.model.preproc.grammar.unparse(root, self.model.schema, self.model.value_unit_dict, self.model.column_data)
 
     def save_step_to_log(self, node_type, parent_h_idx, prev_action_emb_type, prev_action_emb_idx, count_steps=None):

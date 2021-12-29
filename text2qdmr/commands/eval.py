@@ -10,7 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from text2qdmr.datasets.utils.metrics import Metrics
 from text2qdmr.utils import registry
 from text2qdmr.utils.serialization import ComplexDecoder
-
+import pickle
 
 def add_parser():
     parser = argparse.ArgumentParser()
@@ -57,19 +57,37 @@ def main(args):
 
     metrics = Metrics(writer, logdir_metrics, args.virtuoso_server)
 
+    beams_for_dataset = {}
     inferred_lines = list(inferred)
     for line in tqdm(inferred_lines):
         infer_results = json.loads(line, cls=ComplexDecoder)
         if infer_results['beams']:
             inferred_code = infer_results['beams'][0]['inferred_code']
+            model_output = infer_results['beams'][0]['model_output']
         else:
             inferred_code = None
         assert 'name' in infer_results
         name = infer_results['name']
+        # 通过推到出的 name 去数据集里找对应的记录
         section = infer_results['part']
-        metrics.add(examples_with_name[name], inferred_code, section)
+        # metrics新参数，为了让输出包含qdmr_tree
+        metrics.add(examples_with_name[name], inferred_code, section, model_output=model_output)
 
-    metrics = metrics.finalize()
+        if len(infer_results['beams']) != 1 :
+            beams_for_dataset[name] = {
+                'model_1st_output' : {'tree': model_output, 'orig_code': inferred_code},
+                'beam_2rd_output' : {'tree': infer_results['beams'][1]['model_output'], 'orig_code': infer_results['beams'][1]['inferred_code']}
+            }
+            
+
+    metrics, wrong_output = metrics.finalize()
+    # 把结果保留下来，为了KnowledgeEditor时用
+    f = open('wrong_output.pickle', 'wb')
+    pickle.dump(wrong_output, f)
+
+    if beams_for_dataset :
+        f = open('model_output_2_beam.pickle', 'wb')
+        pickle.dump(beams_for_dataset, f)
 
     if args.output:
         if args.logdir:

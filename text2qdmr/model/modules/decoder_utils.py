@@ -1,6 +1,6 @@
 import attr
 import operator
-
+import time
 import torch
 
 @attr.s
@@ -129,13 +129,18 @@ class Hypothesis:
     choice_history = attr.ib(factory=list)
     score_history = attr.ib(factory=list)
 
-def beam_search(model, preproc_item, beam_size, max_steps, strict_decoding=False):
+def beam_search(model, preproc_item, beam_size, max_steps, strict_decoding=False, bert_parameter=None, rule_parameter=None):
     # 需要
-    inference_state, next_choices = model.begin_inference(preproc_item)
+    
+    if bert_parameter is not None:
+        inference_state, next_choices = model.begin_inference(preproc_item, bert_parameter=bert_parameter)
+    elif rule_parameter is not None:
+        inference_state, next_choices = model.begin_inference(preproc_item, rule_parameter=rule_parameter)
+    else:
+        inference_state, next_choices = model.begin_inference(preproc_item)
+
     # inference_state is an object
     # next_choices is [((int, tensor))] # int in next_choice is the choice # tensor is the score 
-
-
     # model -> enc_dec.py 
     # preproc_item -> encoder -> hidden -> decoder -> output
 
@@ -163,7 +168,8 @@ def beam_search(model, preproc_item, beam_size, max_steps, strict_decoding=False
         beam = []
         for hyp, choice, choice_score, cum_score in candidates:
             inference_state = hyp.inference_state.clone()
-            next_choices = inference_state.step(choice, strict_decoding=strict_decoding)
+            # step 是入口
+            next_choices = inference_state.step(choice, strict_decoding=strict_decoding, rule_parameter=rule_parameter)
             if next_choices is None:
                 finished.append(Hypothesis(
                     inference_state,
@@ -176,6 +182,5 @@ def beam_search(model, preproc_item, beam_size, max_steps, strict_decoding=False
                     Hypothesis(inference_state, next_choices, cum_score,
                                hyp.choice_history + [choice],
                                hyp.score_history + [choice_score]))
-
     finished.sort(key=operator.attrgetter('score'), reverse=True)
     return finished

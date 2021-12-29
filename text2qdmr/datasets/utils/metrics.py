@@ -20,7 +20,9 @@ class Metrics:
         self.visualizer = Visualizer(writer, logdir)
         self.virtuoso_server = virtuoso_server
 
-        self.scores = {'val': {}, 'test': {}}
+        self.scores = {'val': {}, 'test': {}, 'train': {}}
+        self.wrong_output = {}
+        
 
     def eval_hardness(self, sql):
         count_comp1_ = count_component1(sql)
@@ -108,10 +110,15 @@ class Metrics:
 
     def compare_sql_qdmr(self, qdmr, sql, schema, rdf_graph, grnd, tl=60, ordered=False, verbose=True):
         got_correct_answer, error_details = False, None
+        # print(sql)
+        # sql 是sql 语句
+        # SELECT count(*) FROM Courses
         try:
             sql_result = QueryResult.execute_query_sql(sql, schema)
         except Exception as e:
             return False, None
+
+        # sql results : QueryResult(source_type='SQL', output_cols=[OutputColumnId(grounding_column=None, aggregator='count')], data=[(15.0,)], sorting_info=None, maxmin_via_limit=False)
 
         try:
             with time_limit(tl):
@@ -152,7 +159,7 @@ class Metrics:
                     qdmr.args[i][i_arg] = repr(grounding_arg)
         return qdmr
 
-    def _evaluate_one(self, break_item, inferred_code, section, check_gold=False, verbose=False):
+    def _evaluate_one(self, break_item, inferred_code, section, model_output=None, check_gold=False, verbose=False):
         if not inferred_code:
             return False, False, None
         if section != 'test':
@@ -164,11 +171,11 @@ class Metrics:
 
         got_correct_answer, error_details = False, None
         qdmr, grounding = self.postprocess_inferred_code(inferred_code)
-
         if break_item.schema:
             schema, rdf_graph = break_item.eval_graphs
 
             sql = break_item.orig_spider_entry['query']
+            # sql是break_item里带的
             sql_hardness = self.eval_hardness(break_item.orig_spider_entry['sql'])
             ordered = True if break_item.sql_code['orderBy'] else False
         
@@ -202,14 +209,36 @@ class Metrics:
         elif error_details == 'TL':
             print('TL in {}'.format(break_item.subset_idx))
 
-        return exact_match, got_correct_answer, sql_hardness
+        if model_output is None:
+            model_result = {"orig_code": str(inferred_code)}
+        else:
+            model_result = {"orig_code": str(inferred_code), "tree": model_output}
 
-    def add(self, break_item, inferred_code, section):
+
+        if got_correct_answer == False:
+            try:
+                error_pair = {"model_output": model_result , "ground_truth": str(break_item.qdmr_code[0])}
+            except:
+                error_pair = {"model_output": model_result , "ground_truth": 'None'}
+        else:
+            error_pair = {}
+
+        return exact_match, got_correct_answer, sql_hardness, error_pair
+
+    def add(self, break_item, inferred_code, section, model_output=None):
         if not break_item:
             return 
         
-        exact_match, exec_match, sql_hardness = self._evaluate_one(break_item, inferred_code, section)
-        self.scores[section][break_item.full_name] = {'ex': exec_match, 'em': exact_match, 'hardness': sql_hardness}
+        if model_output is None:
+            exact_match, exec_match, sql_hardness, error_pair = self._evaluate_one(break_item, inferred_code, section)
+        else: 
+            exact_match, exec_match, sql_hardness, error_pair = self._evaluate_one(break_item, inferred_code, section, model_output=model_output)
+
+        self.scores[section][break_item.full_name] = {'ex': exec_match, 'em': exact_match, 'hardness': sql_hardness, 'error_pairs': error_pair}
+        
+        if not exec_match: 
+            self.wrong_output[break_item.full_name] = {'tree': model_output, 'orig_code': inferred_code}
+
 
     def finalize(self):
         self.visualizer.finalize()
@@ -217,7 +246,7 @@ class Metrics:
         mean_exec_match = float(np.mean([el['ex'] for v in self.scores.values() for el in v.values()]))
         mean_exact_match = float(np.mean([el['em'] for v in self.scores.values() for el in v.values()]))
         res = {
-            'per_item': [{'name': name, 'ex': score['ex'], 'em': score['em'], 'hardness': score['hardness']} for sec_d in self.scores.values() for name, score in sec_d.items()],
+            'per_item': [{'name': name, 'ex': score['ex'], 'em': score['em'], 'hardness': score['hardness'], 'error_pair': score['error_pairs']} for sec_d in self.scores.values() for name, score in sec_d.items()],
             'total_scores': {'ex': mean_exec_match, 'em': mean_exact_match},
         }
 
@@ -227,4 +256,5 @@ class Metrics:
             for lvl in levels:
                 res['total_scores']['ex_{}_{}'.format(section, lvl)] = float(np.mean([el['ex'] for el in self.scores[section].values() if el['hardness'] == lvl]))
 
-        return res
+
+        return res, self.wrong_output

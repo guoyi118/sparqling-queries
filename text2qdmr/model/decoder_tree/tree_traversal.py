@@ -99,7 +99,7 @@ class TreeTraversal:
         other.traversal_step_log = self.traversal_step_log
         return other
 
-    def step(self, last_choice, extra_choice_info=None):
+    def step(self, last_choice, extra_choice_info=None, rule_parameter=None):
         all_next_steps = [idx for rule, idx in self.rules_index.items() if rule[0] == 'step']
         if self.last_handler_name == 'process_sum_inquire':
             self.count_steps += (last_choice in all_next_steps) # TODO 
@@ -109,7 +109,7 @@ class TreeTraversal:
             handler_name = self.handlers[self.cur_item.state]
             handler = getattr(self, handler_name)
             self.last_handler_name = handler_name
-            choices, continued = handler(last_choice)
+            choices, continued = handler(last_choice, rule_parameter)
 
             if continued:
                 last_choice = choices
@@ -151,7 +151,7 @@ class TreeTraversal:
         self.prev_action_emb_idx = last_choice
 
     @Handler.register_handler(State.SUM_TYPE_INQUIRE)
-    def process_sum_inquire(self, last_choice):
+    def process_sum_inquire(self, last_choice, rule_parameter=None):
         # 1. ApplyRule, like expr -> Call
         # a. Ask which one to choose
         self.save_step_to_log(self.cur_item.node_type, self.cur_item.parent_h_idx, self.prev_action_emb_type, self.prev_action_emb_idx)
@@ -169,7 +169,7 @@ class TreeTraversal:
         return choices, False
 
     @Handler.register_handler(State.SUM_TYPE_APPLY)
-    def process_sum_apply(self, last_choice):
+    def process_sum_apply(self, last_choice, rule_parameter=None):
         # b. Add action, prepare for #2
         sum_type, singular_type = self.preproc.all_rules[last_choice]
         assert sum_type == self.cur_item.node_type
@@ -182,7 +182,7 @@ class TreeTraversal:
         return None, True
 
     @Handler.register_handler(State.CHILDREN_INQUIRE)
-    def process_children_inquire(self, last_choice):
+    def process_children_inquire(self, last_choice, rule_parameter=None):
         # 2. ApplyRule, like Call -> expr[func] expr*[args] keyword*[keywords]
         # Check if we have no children
         # a. Ask about presence
@@ -211,7 +211,7 @@ class TreeTraversal:
         return choices, False
 
     @Handler.register_handler(State.CHILDREN_APPLY)
-    def process_children_apply(self, last_choice):
+    def process_children_apply(self, last_choice, rule_parameter=None):
         # b. Create the children
         node_type, children_presence = self.preproc.all_rules[last_choice]
         assert node_type == self.cur_item.node_type
@@ -278,7 +278,7 @@ class TreeTraversal:
         return last_choice, True
 
     @Handler.register_handler(State.GENERAL_POINTER_INQUIRE)
-    def process_general_pointer_inquire(self, last_choice):
+    def process_general_pointer_inquire(self, last_choice, rule_parameter=None):
         # a. Ask which one to choose
         self.save_step_to_log(self.cur_item.node_type, self.cur_item.parent_h_idx, self.prev_action_emb_type, self.prev_action_emb_idx)
 
@@ -295,7 +295,7 @@ class TreeTraversal:
         return choices, False
 
     @Handler.register_handler(State.GENERAL_POINTER_APPLY)
-    def process_general_pointer_apply(self, last_choice):
+    def process_general_pointer_apply(self, last_choice, rule_parameter=None):
         if self.pop():
             last_choice = None
             return last_choice, True
@@ -303,7 +303,7 @@ class TreeTraversal:
             return None, False
 
     @Handler.register_handler(State.REF_INQUIRE)
-    def process_ref_inquire(self, last_choice):
+    def process_ref_inquire(self, last_choice, rule_parameter=None):
         self.save_step_to_log(self.cur_item.node_type, self.cur_item.parent_h_idx, self.prev_action_emb_type, self.prev_action_emb_idx, count_steps=self.count_steps)
         self.cur_item = attr.evolve(self.cur_item,
             state=TreeTraversal.State.REF_APPLY,
@@ -315,7 +315,7 @@ class TreeTraversal:
         return choices, False
 
     @Handler.register_handler(State.REF_APPLY)
-    def process_ref_apply(self, last_choice):
+    def process_ref_apply(self, last_choice, rule_parameter=None):
         if self.pop():
             last_choice = None
             return last_choice, True
@@ -323,7 +323,7 @@ class TreeTraversal:
             return None, False
 
     @Handler.register_handler(State.NODE_FINISHED)
-    def process_node_finished(self, last_choice):
+    def process_node_finished(self, last_choice, rule_parameter=None):
         if self.pop():
             last_choice = None
             return last_choice, True

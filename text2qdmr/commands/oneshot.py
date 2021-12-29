@@ -4,7 +4,7 @@ import json
 import os
 import sys
 import random
-
+import time
 import _jsonnet
 import torch
 import tqdm
@@ -46,12 +46,11 @@ class Oneshot:
             raise Exception(f"Attempting to infer on untrained model in {logdir}, step={step}")
         return model
 
-    def infer(self, model, output_path, args):
+    def infer(self, model, output_path, args, question):
         output = open(output_path, 'w')
         
         with torch.no_grad():
-            for section in ['val']:
-            # for section in args.section:
+            for section in args.section:
                 if self.config.get('full_data') is not None and args.part != 'spider':
                     orig_data = registry.construct('dataset', self.config['full_data'][section])
                 else:
@@ -61,62 +60,78 @@ class Oneshot:
 
                 preproc_data.part = args.part
 
-                if args.shuffle:
-                    idx_shuffle = list(range(len(orig_data)))
-                    random.shuffle(idx_shuffle)
-                    if args.limit:
-                        idx_shuffle = idx_shuffle[:args.limit]
-                    sliced_orig_data, sliced_preproc_data = [], []
-                    for i, (orig_item, preproc_item) in enumerate(zip(orig_data, preproc_data)):
-                        if i in idx_shuffle:
-                            sliced_orig_data.append(orig_item)
-                            sliced_preproc_data.append(preproc_item)
-                else:
-                    if args.limit:
-                        sliced_orig_data = list(itertools.islice(orig_data, args.limit))
-                        sliced_preproc_data = list(itertools.islice(preproc_data, args.limit))
-                    else:
-                        sliced_orig_data = orig_data
-                        sliced_preproc_data = preproc_data
+                sliced_orig_data, sliced_preproc_data = [], []
+
+                
+                # "How many people live in countries that do not speak English?"
+                # "What are the names of the nations with the 3 lowest populations?"
+                for i, (orig_item, preproc_item) in enumerate(zip(orig_data, preproc_data)):
+
+                    if preproc_item[0]['raw_question'] == question:
+                        sliced_orig_data.append(orig_item)
+                        sliced_preproc_data.append(preproc_item)
+
+
+                # if args.shuffle:
+                #     idx_shuffle = list(range(len(orig_data)))
+                #     random.shuffle(idx_shuffle)
+                #     if args.limit:
+                #         idx_shuffle = idx_shuffle[:args.limit]
+                #     sliced_orig_data, sliced_preproc_data = [], []
+                #     for i, (orig_item, preproc_item) in enumerate(zip(orig_data, preproc_data)):
+                #         if i in idx_shuffle:
+                #             sliced_orig_data.append(orig_item)
+                #             sliced_preproc_data.append(preproc_item)
+                # else:
+                #     if args.limit:
+                #         sliced_orig_data = list(itertools.islice(orig_data, args.limit))
+                #         sliced_preproc_data = list(itertools.islice(preproc_data, args.limit))
+                #     else:
+                #         sliced_orig_data = orig_data
+                #         sliced_preproc_data = preproc_data
+                
+                # if sliced_orig_data[0].column_data == sliced_orig_data[1].column_data:
+                #     print('22222222')
+                
                 self._inner_infer(model, args.beam_size, args.output_history, sliced_orig_data, sliced_preproc_data,
                                     output, args.strict_decoding, section)
 
     def _inner_infer(self, model, beam_size, output_history, sliced_orig_data, sliced_preproc_data, output, \
                     strict_decoding=False, section='val'):
+
         for orig_item, preproc_item in tqdm.tqdm(zip(sliced_orig_data, sliced_preproc_data), total=len(sliced_orig_data)):
             assert orig_item.full_name == preproc_item[0]['full_name'], (orig_item.full_name, preproc_item[0]['full_name'])
             
+
             decoded = self._infer_one(model, orig_item, preproc_item, beam_size, output_history, strict_decoding, section)
             
-            # inputneed = open("logdir/grappa_qdmr_train_aug/input.infer", 'w')
-
-            # inputneed.write(
-            #     json.dumps({
-            #         'orig_item': str(orig_item),
-            #         'preproc_item': str(preproc_item),
-            #         'output_history': str(output_history),
-            #         'strict_decoding': str(strict_decoding),
-            #         'section': str(section),
-            #         'decoded': str(decoded),
-
-            #     }, cls=ComplexEncoder) + '\n')
-            # inputneed.flush()       
-
             output.write(
                 json.dumps({
                     'name': orig_item.full_name,
                     'part': section,
                     'beams': decoded,
+                    'orig_item':str(orig_item),
+                    'preproc_item':str(preproc_item),
                 }, cls=ComplexEncoder) + '\n')
             output.flush()
 
     def init_decoder_infer(self, model, data_item, section, strict_decoding):
         # model.decoder -> qdmr_dec.py BreakDecoder
+        # 在 inference是 origin_item需要这几个信息：
+        # data_item.schema , data_item.column_name, data_item.values
 
-        # schema
+
         model.decoder.schema = data_item.schema
+        # schema 需要, 一个datbase的所有schema都是一样的
         # grounding choices
         _, validation_info = model.preproc.validate_item(data_item, section)
+        # validation_info[0]可以为空
+
+        # todo， 明天沿着validation_info继续挖掘 ，看看 orig_item 和 preproc_item在infer时怎么用的。
+        # 目前来说，，orig_item里所用到的 schema 和 columnname都是一整个数据集一样的。 
+
+        # validation_info[0] is qdmr-encoder-value_unit_dict
+        # items需要
         model.decoder.value_unit_dict = validation_info[0]
         model.decoder.ids_to_grounding_choices = model.decoder.preproc.grammar.get_ids_to_grounding_choices(data_item.schema, validation_info[0])
         for rule, idx in model.decoder.rules_index.items():
@@ -124,7 +139,7 @@ class Oneshot:
                 model.decoder.select_index = idx
 
         if strict_decoding:
-            # column types
+            # column types, 一个databse里的也都是一样的。
             assert len(data_item.column_data) == 1
             model.decoder.column_data = data_item.column_data[0]
 
@@ -183,11 +198,30 @@ class Oneshot:
         # only one in beams
 
         decoded = []
-        
+        print('~~~~~~~~~~~~question~~~~~~~~~~~~~~~~~~~~~~~~')
+        print(preproc_item[0]['raw_question'])
         for beam in beams: # len(beams) = 1
             model_output, inferred_code = beam.inference_state.finalize()
             # 一个 model_output 是tree 结构 qdmr
             # inferred_code， 正常结构的qdmr
+            time.sleep(3)
+            print('~~~~~~~~~~ model output:action sequence ~~~~~~~~~~~~')
+            print(model_output)
+            # print('~~~~~~~~~~~~QDMR~~~~~~~~~~~~~~~~~')
+            # print(inferred_code)
+            print('~~~~~~~~ action sequence-> QMDR~~~~~~~~~~~~~`')
+            qdmr = []
+            for i in range(len(inferred_code)):
+                operator = {
+                    'step' : i + 1,
+                    'type' : inferred_code[i][0],
+                    'args' : [
+                        j.arg for j in inferred_code[i][1]
+                    ]
+                }
+                qdmr.append(operator)
+            print(qdmr)
+
             decoded.append({
                 'orig_question': data_item.text, #输入的问题
                 'model_output': model_output, #action sequence
@@ -218,6 +252,7 @@ def add_parser():
 
 
 def main(args):
+
     if args.config_args:
         config = json.loads(_jsonnet.evaluate_file(args.config, tla_codes={'args': args.config_args}))
     else:
@@ -232,9 +267,23 @@ def main(args):
         print(f'Output file {output_path} already exists')
         sys.exit(1)
 
-    Oneshot = Oneshot(config)
-    model = Oneshot.load_model(args.logdir, args.step)
-    Oneshot.infer(model, output_path, args)
+    oneshot= Oneshot(config)
+    model = oneshot.load_model(args.logdir, args.step)
+
+    # What are the names of cities in Europe for which English is not the official language?
+
+    # How many people live in countries that do not speak English?
+    # What are the names of the nations with the 3 lowest populations?
+    # Which regions speak Dutch or English?
+    # Which Asian countries have a population that is larger than any country in Africa?
+
+    while True:
+        question = input('Input a question: ')
+        if question == 'quit':
+            break
+        else:
+            oneshot.infer(model, output_path, args, question)
+
 
 
 if __name__ == '__main__':

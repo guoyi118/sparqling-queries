@@ -1,0 +1,68 @@
+ | Idx | Table      | Column | Primary Key | Foreign Key | 
+ | ----------- | ----------- | ----------- | ----------- | ----------- | 
+  | 0 |  | * |   |   | 
+ | 1 | **Discount_Coupons** | coupon_id | + |   | 
+ | 2 |   | date_issued |   |   | 
+ | 3 |   | coupon_amount |   |   | 
+ | 4 | **Customers** | customer_id | + |   | 
+ | 5 |   | coupon_id |   | --> 1 | 
+ | 6 |   | good_or_bad_customer |   |   | 
+ | 7 |   | first_name |   |   | 
+ | 8 |   | last_name |   |   | 
+ | 9 |   | gender_mf |   |   | 
+ | 10 |   | date_became_customer |   |   | 
+ | 11 |   | date_last_hire |   |   | 
+ | 12 | **Bookings** | booking_id | + |   | 
+ | 13 |   | customer_id |   | --> 4 | 
+ | 14 |   | booking_status_code |   |   | 
+ | 15 |   | returned_damaged_yn |   |   | 
+ | 16 |   | booking_start_date |   |   | 
+ | 17 |   | booking_end_date |   |   | 
+ | 18 |   | count_hired |   |   | 
+ | 19 |   | amount_payable |   |   | 
+ | 20 |   | amount_of_discount |   |   | 
+ | 21 |   | amount_outstanding |   |   | 
+ | 22 |   | amount_of_refund |   |   | 
+ | 23 | **Products_for_Hire** | product_id | + |   | 
+ | 24 |   | product_type_code |   |   | 
+ | 25 |   | daily_hire_cost |   |   | 
+ | 26 |   | product_name |   |   | 
+ | 27 |   | product_description |   |   | 
+ | 28 | **Payments** | payment_id | + |   | 
+ | 29 |   | booking_id |   | --> 12 | 
+ | 30 |   | customer_id |   | --> 4 | 
+ | 31 |   | payment_type_code |   |   | 
+ | 32 |   | amount_paid_in_full_yn |   |   | 
+ | 33 |   | payment_date |   |   | 
+ | 34 |   | amount_due |   |   | 
+ | 35 |   | amount_paid |   |   | 
+ | 36 | **Products_Booked** | booking_id | + | --> 12 | 
+ | 37 |   | product_id |   | --> 23 | 
+ | 38 |   | returned_yn |   |   | 
+ | 39 |   | returned_late_yn |   |   | 
+ | 40 |   | booked_count |   |   | 
+ | 41 |   | booked_amount |   |   | 
+ | 42 | **View_Product_Availability** | product_id |   | --> 23 | 
+ | 43 |   | booking_id |   | --> 12 | 
+ | 44 |   | status_date | + |   | 
+ | 45 |   | available_yn |   |   | 
+ 
+  | Index | Question  | SQL | gold QDMR | pred QDMR | Exec | SQL hardness |
+  | ----------- | ----------- | ----------- |  ----------- | ----------- | ----------- | ----------- | 
+ | SPIDER_train_1961 | How many bookings did each customer make? List the customer id, first name, and the count. | SELECT T1.customer_id ,  T1.first_name ,  count(*) FROM Customers AS T1 JOIN bookings AS T2 ON T1.customer_id  =  T2.customer_id GROUP BY T1.customer_id | 1. SELECT[col:​Customers:​customer_id] <br>2. PROJECT[col:​Customers:​customer_id, #1] <br>3. PROJECT[col:​Customers:​first_name, #1] <br>4. PROJECT[tbl:​Bookings, #1] <br>5. GROUP[count, #4, #1] <br>6. UNION[#2, #3, #5] <br> | 1. SELECT[col:​Customers:​customer_id] <br>2. PROJECT[col:​Customers:​customer_id, #1] <br>3. PROJECT[col:​Customers:​first_name, #1] <br>4. PROJECT[tbl:​Bookings, #1] <br>5. GROUP[count, #4, #1] <br>6. UNION[#2, #3, #5] <br> | + | medium | 
+  | SPIDER_train_1963 | What are the id and the amount of refund of the booking that incurred the most times of payments? | SELECT T1.booking_id ,  T1.amount_of_refund FROM Bookings AS T1 JOIN Payments AS T2 ON T1.booking_id  =  T2.booking_id GROUP BY T1.booking_id ORDER BY count(*) DESC LIMIT 1 | 1. SELECT[tbl:​Bookings] <br>2. PROJECT[tbl:​Payments, #1] <br>3. GROUP[count, #2, #1] <br>4. SUPERLATIVE[comparative:​max:​None, #1, #3] <br>5. PROJECT[col:​Bookings:​booking_id, #4] <br>6. PROJECT[col:​Bookings:​amount_of_refund, #4] <br>7. PROJECT[col:​Bookings:​amount_of_refund, #6] <br>8. UNION[#5, #7] <br> | 1. SELECT[tbl:​Bookings] <br>2. PROJECT[tbl:​Payments, #1] <br>3. GROUP[count, #2, #1] <br>4. SUPERLATIVE[comparative:​max:​None, #1, #3] <br>5. PROJECT[col:​Bookings:​booking_id, #4] <br>6. PROJECT[col:​Bookings:​amount_of_refund, #4] <br>7. PROJECT[col:​Bookings:​amount_of_refund, #6] <br>8. UNION[#5, #7] <br> | + | extra | 
+  | SPIDER_train_1965 | What is the product description of the product booked with an amount of 102.76? | SELECT T2.product_description FROM products_booked AS T1 JOIN products_for_hire AS T2 ON T1.product_id  =  T2.product_id WHERE T1.booked_amount  =  102.76 | 1. SELECT[tbl:​Products_for_Hire] <br>2. PROJECT[tbl:​Products_for_Hire, #1] <br>3. COMPARATIVE[#1, #2, comparative:​=:​102.76:​col:​Products_Booked:​booked_amount] <br>4. PROJECT[col:​Products_for_Hire:​product_description, #3] <br> | 1. SELECT[tbl:​Products_for_Hire] <br>2. PROJECT[tbl:​Products_for_Hire, #1] <br>3. COMPARATIVE[#1, #2, comparative:​=:​102.76:​col:​Products_Booked:​booked_amount] <br>4. PROJECT[col:​Products_for_Hire:​product_description, #3] <br> | - | medium | 
+  | SPIDER_train_1966 | What are the start date and end date of the booking that has booked the product named 'Book collection A'? | SELECT T3.booking_start_date ,   T3.booking_end_date FROM Products_for_hire AS T1 JOIN products_booked AS T2 ON T1.product_id  =  T2.product_id JOIN bookings AS T3 ON T2.booking_id  =  T3.booking_id WHERE T1.product_name  =  'Book collection A' | 1. SELECT[tbl:​Products_Booked] <br>2. FILTER[#1, comparative:​=:​Book collection A:​col:​Products_for_Hire:​product_name] <br>3. PROJECT[col:​Bookings:​booking_start_date, #2] <br>4. PROJECT[col:​Bookings:​booking_end_date, #3] <br>5. UNION[#3, #4] <br> | 1. SELECT[tbl:​Products_Booked] <br>2. COMPARATIVE[#1, #1, comparative:​=:​Book collection A:​col:​Products_for_Hire:​product_name] <br>3. PROJECT[col:​Bookings:​booking_start_date, #2] <br>4. PROJECT[col:​Bookings:​booking_end_date, #3] <br>5. UNION[#3, #4] <br> | + | hard | 
+  | SPIDER_train_1967 | What are the names of products whose availability equals to 1? | SELECT T2.product_name FROM view_product_availability AS T1 JOIN products_for_hire AS T2 ON T1.product_id  =  T2.product_id WHERE T1.available_yn  =  1 | 1. SELECT[tbl:​View_Product_Availability] <br>2. PROJECT[tbl:​View_Product_Availability, #1] <br>3. COMPARATIVE[#1, #2, comparative:​=:​1:​col:​View_Product_Availability:​available_yn] <br>4. PROJECT[col:​Products_for_Hire:​product_name, #3] <br> | 1. SELECT[tbl:​View_Product_Availability] <br>2. PROJECT[tbl:​View_Product_Availability, #1] <br>3. COMPARATIVE[#1, #2, comparative:​=:​1:​col:​View_Product_Availability:​available_yn] <br>4. PROJECT[col:​Products_for_Hire:​product_name, #3] <br> | + | medium | 
+  | SPIDER_train_1968 | How many different product types are there? | SELECT count(DISTINCT product_type_code) FROM products_for_hire | 1. SELECT[col:​Products_for_Hire:​product_type_code] <br>2. AGGREGATE[count, #1] <br> | 1. SELECT[col:​Products_for_Hire:​product_type_code] <br>2. AGGREGATE[count, #1] <br> | + | easy | 
+  | SPIDER_train_1969 | What are the first name, last name, and gender of all the good customers? Order by their last name. | SELECT first_name ,  last_name ,  gender_mf FROM customers WHERE good_or_bad_customer  =  'good' ORDER BY last_name | 1. SELECT[val:​Customers:​good_or_bad_customer:​good] <br>2. PROJECT[col:​Customers:​first_name, #1] <br>3. PROJECT[col:​Customers:​last_name, #1] <br>4. PROJECT[col:​Customers:​gender_mf, #1] <br>5. UNION[#2, #3, #4] <br>6. SORT[#5, #3] <br> | 1. SELECT[val:​Customers:​good_or_bad_customer:​good] <br>2. PROJECT[col:​Customers:​first_name, #1] <br>3. PROJECT[col:​Customers:​last_name, #1] <br>4. PROJECT[col:​Customers:​gender_mf, #1] <br>5. UNION[#2, #3, #4] <br>6. SORT[#5, #3, sortdir:​ascending] <br> | + | medium | 
+  | SPIDER_train_1970 | What is the average amount due for all the payments? | SELECT avg(amount_due) FROM payments | 1. SELECT[tbl:​Payments] <br>2. PROJECT[col:​Payments:​amount_due, #1] <br>3. AGGREGATE[avg, #2] <br> | 1. SELECT[tbl:​Payments] <br>2. PROJECT[col:​Payments:​amount_due, #1] <br>3. AGGREGATE[avg, #2] <br> | + | easy | 
+  | SPIDER_train_1971 | What are the maximum, minimum, and average booked count for the products booked? | SELECT max(booked_count) ,  min(booked_count) ,  avg(booked_count) FROM products_booked | 1. SELECT[tbl:​Products_Booked] <br>2. FILTER[#1, tbl:​Products_Booked] <br>3. PROJECT[col:​Products_Booked:​booked_count, #2] <br>4. AGGREGATE[max, #3] <br>5. AGGREGATE[min, #3] <br>6. AGGREGATE[avg, #3] <br>7. UNION[#4, #5, #6] <br> | 1. SELECT[tbl:​Products_Booked] <br>2. COMPARATIVE[#1, #1, tbl:​Products_Booked] <br>3. PROJECT[col:​Products_Booked:​booked_count, #2] <br>4. AGGREGATE[max, #3] <br>5. AGGREGATE[min, #3] <br>6. AGGREGATE[avg, #3] <br>7. UNION[#4, #5, #6] <br> | + | medium | 
+  | SPIDER_train_1972 | What are all the distinct payment types? | SELECT DISTINCT payment_type_code FROM payments | 1. SELECT[tbl:​Payments] <br>2. PROJECT[col:​Payments:​payment_type_code, #1] <br>3.*(distinct)* PROJECT[distinct #REF, #2] <br> | 1. SELECT[tbl:​Payments] <br>2. PROJECT[col:​Payments:​payment_type_code, #1] <br>3.*(distinct)* PROJECT[None, #2] <br> | + | easy | 
+  | SPIDER_train_1973 | What are the daily hire costs for the products with substring 'Book' in its name? | SELECT daily_hire_cost FROM Products_for_hire WHERE product_name LIKE '%Book%' | 1. SELECT[tbl:​Products_for_Hire] <br>2. PROJECT[col:​Products_for_Hire:​product_name, #1] <br>3. COMPARATIVE[#1, #2, comparative:​like:​%Book%:​col:​Products_for_Hire:​product_name] <br>4. PROJECT[col:​Products_for_Hire:​daily_hire_cost, #3] <br> | 1. SELECT[tbl:​Products_for_Hire] <br>2. PROJECT[col:​Products_for_Hire:​product_name, #1] <br>3. COMPARATIVE[#1, #2, comparative:​like:​Book:​col:​Products_for_Hire:​product_name] <br>4. PROJECT[col:​Products_for_Hire:​daily_hire_cost, #3] <br> | + | medium | 
+  | SPIDER_train_1974 | How many products are never booked with amount higher than 200? | SELECT count(*) FROM Products_for_hire WHERE product_id NOT IN ( SELECT product_id FROM products_booked WHERE booked_amount  >  200 ) | 1. SELECT[tbl:​Products_for_Hire] <br>2. PROJECT[tbl:​Products_Booked, #1] <br>3. COMPARATIVE[#1, #2, comparative:​>:​200:​col:​Products_Booked:​booked_amount] <br>4. DISCARD[#1, #3] <br>5. AGGREGATE[count, #4] <br> | 1. SELECT[tbl:​Products_for_Hire] <br>2. PROJECT[tbl:​Products_Booked, #1] <br>3. COMPARATIVE[#1, #2, comparative:​>:​200:​col:​Products_Booked:​booked_amount] <br>4. DISCARD[#1, #3] <br>5. AGGREGATE[count, #4] <br> | + | extra | 
+  | SPIDER_train_1975 | What are the coupon amount of the coupons owned by both good and bad customers? | SELECT T1.coupon_amount FROM Discount_Coupons AS T1 JOIN customers AS T2 ON T1.coupon_id  =  T2.coupon_id WHERE T2.good_or_bad_customer  =  'good' INTERSECT SELECT T1.coupon_amount FROM Discount_Coupons AS T1 JOIN customers AS T2 ON T1.coupon_id  =  T2.coupon_id WHERE T2.good_or_bad_customer  =  'bad' | 1. SELECT[tbl:​Customers] <br>2. FILTER[#1, comparative:​=:​good:​col:​Customers:​good_or_bad_customer] <br>3. FILTER[#1, comparative:​=:​bad:​col:​Customers:​good_or_bad_customer] <br>4. PROJECT[col:​Discount_Coupons:​coupon_amount, #2] <br>5. PROJECT[tbl:​Discount_Coupons, #3] <br>6. PROJECT[tbl:​Discount_Coupons, #1] <br>7. INTERSECTION[#6, #4, #5] <br>8. PROJECT[col:​Discount_Coupons:​coupon_amount, #7] <br> | 1. SELECT[tbl:​Customers] <br>2. COMPARATIVE[#1, #1, comparative:​=:​good:​col:​Customers:​good_or_bad_customer] <br>3. COMPARATIVE[#1, #1, comparative:​=:​bad:​col:​Customers:​good_or_bad_customer] <br>4. PROJECT[col:​Discount_Coupons:​coupon_amount, #2] <br>5. PROJECT[tbl:​Discount_Coupons, #3] <br>6. PROJECT[tbl:​Discount_Coupons, #1] <br>7. INTERSECTION[#6, #4, #5] <br>8. PROJECT[col:​Discount_Coupons:​coupon_amount, #7] <br> | + | extra | 
+  | SPIDER_train_1976 | What are the payment date of the payment with amount paid higher than 300 or with payment type is 'Check' | SELECT payment_date FROM payments WHERE amount_paid  >  300 OR payment_type_code  =  'Check' | 1. SELECT[col:​Payments:​payment_date] <br>2. PROJECT[col:​Payments:​amount_paid, #1] <br>3. COMPARATIVE[#1, #2, comparative:​>:​300:​col:​Payments:​amount_paid] <br>4. PROJECT[col:​Payments:​payment_type_code, #1] <br>5. COMPARATIVE[#1, #4, comparative:​=:​Check:​col:​Payments:​payment_type_code] <br>6. UNION[#3, #5] <br>7. PROJECT[col:​Payments:​payment_date, #6] <br> | 1. SELECT[col:​Payments:​payment_date] <br>2. PROJECT[col:​Payments:​amount_paid, #1] <br>3. COMPARATIVE[#1, #2, comparative:​>:​300:​col:​Payments:​amount_paid] <br>4. PROJECT[col:​Payments:​payment_type_code, #1] <br>5. COMPARATIVE[#1, #4, comparative:​=:​Check:​col:​Payments:​payment_type_code] <br>6. UNION[#3, #5] <br>7. PROJECT[col:​Payments:​payment_date, #6] <br> | + | medium | 
+  | SPIDER_train_1977 | What are the names and descriptions of the products that are of 'Cutlery' type and have daily hire cost lower than 20? | SELECT product_name ,  product_description FROM products_for_hire WHERE product_type_code  =  'Cutlery' AND daily_hire_cost  <  20 | 1. SELECT[tbl:​Products_for_Hire] <br>2. PROJECT[col:​Products_for_Hire:​product_type_code, #1] <br>3. COMPARATIVE[#1, #2, comparative:​=:​Cutlery:​col:​Products_for_Hire:​product_type_code] <br>4. PROJECT[tbl:​Products_for_Hire, #3] <br>5. COMPARATIVE[#3, #4, comparative:​<:​20:​col:​Products_for_Hire:​daily_hire_cost] <br>6. PROJECT[col:​Products_for_Hire:​product_name, #5] <br>7. PROJECT[col:​Products_for_Hire:​product_description, #5] <br>8. UNION[#6, #7] <br> | 1. SELECT[tbl:​Products_for_Hire] <br>2. PROJECT[col:​Products_for_Hire:​product_type_code, #1] <br>3. COMPARATIVE[#1, #2, comparative:​=:​Cutlery:​col:​Products_for_Hire:​product_type_code] <br>4. PROJECT[tbl:​Products_for_Hire, #3] <br>5. COMPARATIVE[#3, #4, comparative:​<:​20:​col:​Products_for_Hire:​daily_hire_cost] <br>6. PROJECT[col:​Products_for_Hire:​product_name, #5] <br>7. PROJECT[col:​Products_for_Hire:​product_description, #5] <br>8. UNION[#6, #7] <br> | + | medium | 
+ ***
+ Exec acc: **0.9333**

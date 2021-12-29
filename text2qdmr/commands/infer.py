@@ -39,6 +39,7 @@ class Inferer:
         model.to(self.device)
         model.eval()
 
+
         # 2. Restore its parameters
         saver = saver_mod.Saver({"model": model})
         last_step = saver.restore(logdir, step=step, map_location=self.device, item_keys=["model"])
@@ -59,6 +60,7 @@ class Inferer:
                 preproc_data = self.model_preproc.dataset(section, two_datasets=self.config.get('full_data'))
 
                 preproc_data.part = args.part
+                print('~~~len(orig_data)~~~~~~', len(orig_data))
 
                 if args.shuffle:
                     idx_shuffle = list(range(len(orig_data)))
@@ -77,6 +79,7 @@ class Inferer:
                     else:
                         sliced_orig_data = orig_data
                         sliced_preproc_data = preproc_data
+                print('~~~~~sliced_orig_data~~~~~~',len(sliced_orig_data))
                 self._inner_infer(model, args.beam_size, args.output_history, sliced_orig_data, sliced_preproc_data,
                                     output, args.strict_decoding, section)
 
@@ -85,7 +88,17 @@ class Inferer:
         for orig_item, preproc_item in tqdm.tqdm(zip(sliced_orig_data, sliced_preproc_data), total=len(sliced_orig_data)):
             assert orig_item.full_name == preproc_item[0]['full_name'], (orig_item.full_name, preproc_item[0]['full_name'])
             
-            decoded = self._infer_one(model, orig_item, preproc_item, beam_size, output_history, strict_decoding, section)
+           
+            # decoded = self._infer_one(model, orig_item, preproc_item, beam_size, output_history, strict_decoding, section)
+             # 在跑train数据的时候，可能会出错，所以加上try
+            
+            try:
+                decoded = self._infer_one(model, orig_item, preproc_item, beam_size, output_history, strict_decoding, section)
+            except:
+                print("skip:" , orig_item.full_name)
+                continue
+
+
             
             # inputneed = open("logdir/grappa_qdmr_train_aug/input.infer", 'w')
 
@@ -182,6 +195,14 @@ class Inferer:
         # only one in beams
 
         decoded = []
+
+        # 用于生产数据集
+        if len(beams) != 1:
+            new_beams = []
+            new_beams.append(beams[0])
+            new_beams.append(random.choice(beams[1:]))
+            beams = new_beams
+            
         
         for beam in beams: # len(beams) = 1
             model_output, inferred_code = beam.inference_state.finalize()

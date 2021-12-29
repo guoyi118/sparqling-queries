@@ -3,9 +3,11 @@ import collections
 import json
 import attr
 import copy
+from higher.patch import monkeypatch as make_functional
 
 import numpy as np
-
+from ast import literal_eval
+import pickle
 import torch
 import torch.utils.data
 
@@ -16,6 +18,17 @@ from text2qdmr.utils.serialization import ComplexEncoder, ComplexDecoder
 from text2qdmr.datasets.qdmr import load_tables, BreakItem
 from text2qdmr.datasets.utils.extract_values import ValueUnit
 from qdmr2sparql.structures import prepare_dict_for_json, load_grounding_list_from_file, RdfGraph
+import pandas as pd 
+
+
+import attr
+
+
+@attr.s
+class BreakDecoderPreprocItem:
+    tree = attr.ib()
+    orig_code = attr.ib()
+    spider_idx = attr.ib()
 
 
 class ZippedDataset(torch.utils.data.Dataset):
@@ -236,7 +249,90 @@ class EncDecModel(torch.nn.Module):
                 return TwoZippedDataset(self.enc_preproc.dataset(section), self.dec_preproc.dataset(section))
             
             # we are here
+                
             return ZippedDataset(self.enc_preproc.dataset(section), self.dec_preproc.dataset(section))
+        # 为Knowledge editor新写了一个dataset函数
+        def dataset_KE(self, section, orig_data, two_datasets=False, config=None): 
+
+            
+            # assert len(self.enc_preproc.dataset(section)) == len(self.dec_preproc.dataset(section)), f"Lengths don't match: {lengths}"
+            # assert len(self.enc_preproc.dataset('train')) == len(self.dec_preproc.dataset('train')), f"Lengths don't match: {lengths}"
+            # assert len(self.enc_preproc.dataset('val')) == len(self.dec_preproc.dataset('val')), f"Lengths don't match: {lengths}"
+            
+
+            # encode_data = []
+            # correct_decode_data = []
+            # wrong_decode_data = []
+
+            # pickle_in = open("model_output_2_beam.pickle","rb")
+            # model_2_output = pickle.load(pickle_in)
+
+            # filtered_orig_data = []
+
+            # namelist = list(model_2_output.keys())
+
+            # we want use beam_2rd_output as the alter output of model, 
+            # so:  
+            # correct_decode is beam_2rd_output
+            # wrong_output is model_1st_output
+
+            # for section in ["train", "val", "test"]:
+            #     for enc in self.enc_preproc.dataset(section):
+            #         if enc['full_name'] in namelist:
+            #             encode_data.append(enc)
+            #             correct_decode = model_2_output[enc['full_name']]['beam_2rd_output']
+            #             correct_decode_item = BreakDecoderPreprocItem(
+            #             tree=[correct_decode['tree']],
+            #             orig_code=[correct_decode['orig_code']],
+            #             spider_idx=None)
+            #             correct_decode_data.append(correct_decode_item)
+
+            #             wrong_decode = model_2_output[enc['full_name']]['model_1st_output']
+            #             wrong_decode_item = BreakDecoderPreprocItem(
+            #                 tree=[wrong_decode['tree']],
+            #                 orig_code=[wrong_decode['orig_code']],
+            #                 spider_idx=None)
+            #             wrong_decode_data.append(wrong_decode_item)
+
+            #     for item in orig_data[section]:
+            #         if item.full_name in namelist:
+            #             filtered_orig_data.append(item)
+
+
+
+            pickle_in = open("encode_data.pickle","rb")
+            encode_data = pickle.load(pickle_in)
+
+            pickle_in = open("correct_decode_data.pickle","rb")
+            correct_decode_data = pickle.load(pickle_in)
+
+            pickle_in = open("wrong_decode_data.pickle","rb")
+            wrong_decode_data = pickle.load(pickle_in)
+
+            pickle_in = open("filtered_orig_data.pickle","rb")
+            filtered_orig_data = pickle.load(pickle_in)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+            # f = open('encode_data.pickle', 'wb')
+            # pickle.dump(encode_data, f)
+
+
+            # f = open('correct_decode_data.pickle', 'wb')
+            # pickle.dump(correct_decode_data, f)
+
+            # f = open('wrong_decode_data.pickle', 'wb')
+            # pickle.dump(wrong_decode_data, f)
+
+            # f = open('filtered_orig_data.pickle', 'wb')
+            # pickle.dump(filtered_orig_data, f)
+
+
+            # we are here
+                
+            return ZippedDataset(encode_data, correct_decode_data, wrong_decode_data), filtered_orig_data
+
         
     def __init__(self, preproc, device, encoder, decoder):
         super().__init__()
@@ -252,12 +348,24 @@ class EncDecModel(torch.nn.Module):
             self.compute_loss = self._compute_loss_unbatched
 
     # add regular forward to wrap into DistributedDataParallel
-    def forward(self, batch):
-        return self.compute_loss(batch)
-
-    def _compute_loss_enc_batched(self, batch, debug=False):
+    # 给forward新加入一个非必需参数，为了获取到model.forward以后的logits
+    def forward(self, batch, ke=False, bert_parameter=None, rule_parameter=None):
+        if ke :
+            if bert_parameter is not None:
+                return self.compute_loss(batch, ke=ke, bert_parameter=bert_parameter)
+            elif rule_parameter is not None:
+                return self.compute_loss(batch, ke=ke, rule_parameter=rule_parameter)
+            else:
+                return self.compute_loss(batch, ke=ke)
+        else:
+            return self.compute_loss(batch)
+        # 参数可调
+    def _compute_loss_enc_batched(self, batch, debug=False, ke=False, bert_parameter=None, rule_parameter=None):
         losses = []
-        enc_states = self.encoder([enc_input for enc_input, _ in batch])
+        if bert_parameter is not None:
+            enc_states, _ = self.encoder([enc_input for enc_input, _ in batch], parameter=bert_parameter)            
+        else:
+            enc_states, _ = self.encoder([enc_input for enc_input, _ in batch])
 
         # throw away batch elements that appeared to be too long and were not processed
         batch = [b for b, st_ in zip(batch, enc_states) if st_ is not None]
@@ -265,6 +373,7 @@ class EncDecModel(torch.nn.Module):
         enc_inputs = [b[0] for b in batch]
         dec_outputs = [b[1] for b in batch]
 
+        
         if len(batch) == 0:
             # all batch elements were thrown away
             return torch.zeros([1])
@@ -280,21 +389,33 @@ class EncDecModel(torch.nn.Module):
             decoder_inputs.append(decoder_input)
 
         batch_size = len(batch)
+
         self.decoder.state_update.set_dropout_masks(batch_size=batch_size) #(batch_size=1)
 
-        losses_batched = self.decoder.compute_loss_batched(enc_inputs, dec_outputs, enc_states, decoder_inputs, debug)
-
-        losses = losses_batched
-
-        if debug:
-            return losses
+        if ke :
+            if rule_parameter is not None:
+                losses_batched, rule_loss_batched, rule_logits = self.decoder.compute_loss_batched(enc_inputs, dec_outputs, enc_states, decoder_inputs, debug, ke=ke, parameter=rule_parameter)
+            else:
+                losses_batched, rule_loss_batched, rule_logits = self.decoder.compute_loss_batched(enc_inputs, dec_outputs, enc_states, decoder_inputs, debug, ke=ke)
+            
+            return losses_batched, rule_loss_batched, rule_logits
+        
         else:
-            return torch.mean(torch.stack(losses, dim=0), dim=0)
+            
+            losses_batched = self.decoder.compute_loss_batched(enc_inputs, dec_outputs, enc_states, decoder_inputs, debug)
+
+            losses = losses_batched
+
+            if debug:
+                return losses
+            else:
+                return torch.mean(torch.stack(losses, dim=0), dim=0)
 
     def _compute_loss_enc_batched2(self, batch, debug=False):
         losses = []
         for enc_input, dec_output in batch:
-            enc_state, = self.encoder([enc_input])
+            enc_state, _ = self.encoder([enc_input])
+            enc_state, = enc_state
             loss = self.decoder.compute_loss(enc_input, dec_output, enc_state, debug)
             losses.append(loss)
         if debug:
@@ -305,7 +426,7 @@ class EncDecModel(torch.nn.Module):
     def _compute_loss_unbatched(self, batch, debug=False):
         losses = []
         for enc_input, dec_output in batch:
-            enc_state = self.encoder(enc_input)
+            enc_state, _ = self.encoder(enc_input)
             loss = self.decoder.compute_loss(enc_input, dec_output, enc_state, debug)
             losses.append(loss)
         if debug:
@@ -319,12 +440,26 @@ class EncDecModel(torch.nn.Module):
         result = {'loss': mean_loss * batch_size, 'total': batch_size}
         return result
 
-    def begin_inference(self, preproc_item):
+    def begin_inference(self, preproc_item, bert_parameter=None, rule_parameter=None):
         enc_input, _ = preproc_item
         #enc_input is question + schema linking +   schema  + general grounding
         if getattr(self.encoder, 'batched'):
-            enc_state, = self.encoder([enc_input])
+            if bert_parameter is not None:
+                enc_state, _ = self.encoder.eval()([enc_input], parameter=bert_parameter)
+                enc_state, = enc_state
+            else:
+                enc_state, _ = self.encoder([enc_input])
+                enc_state, = enc_state
+            
+
         else:
-            enc_state = self.encoder(enc_input)
+            if bert_parameter is not None:
+                enc_state, _ = self.encoder(enc_input, parameter=bert_parameter)
+            else:
+                enc_state, _ = self.encoder(enc_input)
+
         # enc_state is a vector
-        return self.decoder.begin_inference(enc_state)
+        if rule_parameter is not None:
+            return self.decoder.begin_inference(enc_state, parameter=rule_parameter)
+        else:
+            return self.decoder.begin_inference(enc_state)

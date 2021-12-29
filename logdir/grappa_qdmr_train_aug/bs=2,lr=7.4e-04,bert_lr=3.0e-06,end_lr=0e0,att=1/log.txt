@@ -1,0 +1,94 @@
+[2022-02-14T00:14:13] Logging to logdir/grappa_qdmr_train_aug/bs=2,lr=7.4e-04,bert_lr=3.0e-06,end_lr=0e0,att=1
+[2022-02-14T00:15:11] Running on git commit '274d179dfa0f503ea7fb316603d15bf2e342836e'
+[2022-02-14T00:15:11] Result of conda info:
+[2022-02-14T00:15:11] 
+     active environment : base
+    active env location : /home/sdq/miniconda3
+            shell level : 1
+       user config file : /home/sdq/.condarc
+ populated config files : /home/sdq/.condarc
+          conda version : 4.9.2
+    conda-build version : not installed
+         python version : 3.8.5.final.0
+       virtual packages : __cuda=10.2=0
+                          __glibc=2.23=0
+                          __unix=0=0
+                          __archspec=1=x86_64
+       base environment : /home/sdq/miniconda3  (writable)
+           channel URLs : https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/linux-64
+                          https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/noarch
+                          https://repo.anaconda.com/pkgs/main/linux-64
+                          https://repo.anaconda.com/pkgs/main/noarch
+                          https://repo.anaconda.com/pkgs/r/linux-64
+                          https://repo.anaconda.com/pkgs/r/noarch
+          package cache : /home/sdq/miniconda3/pkgs
+                          /home/sdq/.conda/pkgs
+       envs directories : /home/sdq/miniconda3/envs
+                          /home/sdq/.conda/envs
+               platform : linux-64
+             user-agent : conda/4.9.2 requests/2.24.0 CPython/3.8.5 Linux/4.15.0-29-generic ubuntu/16.04.5 glibc/2.23
+                UID:GID : 1001:1001
+             netrc file : None
+           offline mode : False
+
+
+[2022-02-14T00:15:11] pytorch version: 1.9.0+cu102
+[2022-02-14T00:15:11] transformers version: 4.12.5
+[2022-02-14T00:15:24] Step 0 stats, train: loss = 157.13460540771484
+[2022-02-14T00:15:25] Step 0 stats, val: loss = 171.99684143066406
+[2022-02-14T00:15:27] Step 0: loss=130.3333, grad norms: 38.0814, 14.5758
+[2022-02-14T00:15:53] Step 10: loss=214.4312, grad norms: 45.5820, 17.2613
+[2022-02-14T00:16:10] Step 20: loss=85.0244, grad norms: 36.7780, 12.6578
+[2022-02-14T00:16:27] Step 30: loss=116.0955, grad norms: 27.1643, 9.5820
+[2022-02-14T00:16:44] Step 40: loss=97.8183, grad norms: 23.5134, 8.0178
+[2022-02-14T00:17:01] Step 50: loss=104.6123, grad norms: 26.7115, 9.0466
+[2022-02-14T00:17:18] Step 60: loss=98.6055, grad norms: 22.5076, 6.3876
+[2022-02-14T00:17:36] Step 70: loss=103.4206, grad norms: 26.6765, 6.9979
+[2022-02-14T00:17:53] Step 80: loss=155.7385, grad norms: 25.1919, 7.3656
+[2022-02-14T00:18:11] Step 90: loss=169.1772, grad norms: 30.3541, 8.5183
+[2022-02-14T00:18:40] Step 100 stats, train: loss = 140.75697326660156
+[2022-02-14T00:18:41] Step 100 stats, val: loss = 155.98206329345703
+[2022-02-14T00:18:43] Step 100: loss=122.7444, grad norms: 26.5062, 6.6469
+[2022-02-14T00:18:59] Step 110: loss=85.0529, grad norms: 26.2673, 8.0991
+[2022-02-14T00:19:16] Step 120: loss=98.4954, grad norms: 25.1119, 8.7134
+[2022-02-14T00:19:34] Step 130: loss=98.8668, grad norms: 26.7402, 9.9106
+[2022-02-14T00:19:51] Logging to logdir/grappa_qdmr_train_aug/bs=2,lr=7.4e-04,bert_lr=3.0e-06,end_lr=0e0,att=1
+[2022-02-14T00:20:46] Running on git commit '274d179dfa0f503ea7fb316603d15bf2e342836e'
+[2022-02-14T00:20:47] Result of conda info:
+[2022-02-14T00:20:47] 
+     active environment : base
+    active env location : /home/sdq/miniconda3
+            shell level : 1
+       user config file : /home/sdq/.condarc
+ populated config files : /home/sdq/.condarc
+          conda version : 4.9.2
+    conda-build version : not installed
+         python version : 3.8.5.final.0
+       virtual packages : __cuda=10.2=0
+                          __glibc=2.23=0
+                          __unix=0=0
+                          __archspec=1=x86_64
+       base environment : /home/sdq/miniconda3  (writable)
+           channel URLs : https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/linux-64
+                          https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/noarch
+                          https://repo.anaconda.com/pkgs/main/linux-64
+                          https://repo.anaconda.com/pkgs/main/noarch
+                          https://repo.anaconda.com/pkgs/r/linux-64
+                          https://repo.anaconda.com/pkgs/r/noarch
+          package cache : /home/sdq/miniconda3/pkgs
+                          /home/sdq/.conda/pkgs
+       envs directories : /home/sdq/miniconda3/envs
+                          /home/sdq/.conda/envs
+               platform : linux-64
+             user-agent : conda/4.9.2 requests/2.24.0 CPython/3.8.5 Linux/4.15.0-29-generic ubuntu/16.04.5 glibc/2.23
+                UID:GID : 1001:1001
+             netrc file : None
+           offline mode : False
+
+
+[2022-02-14T00:20:47] pytorch version: 1.9.0+cu102
+[2022-02-14T00:20:47] transformers version: 4.12.5
+[2022-02-14T00:20:56] Step 100 stats, train: loss = 140.83560943603516
+[2022-02-14T00:20:58] Step 100 stats, val: loss = 155.98206329345703
+[2022-02-14T00:20:59] Step 100: loss=117.8292, grad norms: 21.5857, 6.4687
+[2022-02-14T00:21:15] Step 110: loss=190.3020, grad norms: 30.8979, 9.6741

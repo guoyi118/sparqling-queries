@@ -3,12 +3,12 @@ import itertools
 import json
 import os
 import copy
-
+from higher.patch import monkeypatch as make_functional
 import attr
 import numpy as np
 import torch.nn.functional as F
 import torch
-
+import time
 from text2qdmr.model.modules import abstract_preproc, attention, variational_lstm
 from text2qdmr.utils import registry
 from text2qdmr.utils import serialization
@@ -384,7 +384,7 @@ class BreakDecoder(torch.nn.Module):
             raise Exception(f'Unknown share_pointer_type {share_pointer_type}')
 
         max_num_refs = 20
-
+        # ref_logits 是只想某个reference step
         self.ref_logits = torch.nn.Sequential(
             torch.nn.Linear(self.recurrent_size, self.rule_emb_size),
             torch.nn.Tanh(),
@@ -471,13 +471,45 @@ class BreakDecoder(torch.nn.Module):
 
         return all_rules, rules_mask
 
-    def compute_loss_batched(self, enc_inputs, examples, desc_encs, execution_maps, debug):
+    def compute_loss_batched(self, enc_inputs, examples, desc_encs, execution_maps, debug, ke=False, parameter=None):
         assert not (self.enumerate_order and self.training)
 
-        mle_losses = self.compute_loss_given_execution_plan_batched(execution_maps, desc_encs)
 
-        assert not self.use_align_loss
-        return mle_losses
+        if ke:
+            mle_losses = []
+            rule_losses = []
+            rule_logits = []
+            pointer_logits = []
+            ref_logits = []
+
+            assert len(execution_maps) == len(desc_encs), 'not same length execution_map, desc_encs'
+            for execution_map, desc_enc in zip(execution_maps, desc_encs):
+                if parameter is not None:
+                    mle_losse, rule_loss, rule_logit = self.compute_loss_given_execution_plan_batched([execution_map], [desc_enc], ke=ke, parameter=parameter)
+                else:
+                    mle_losse, rule_loss, rule_logit = self.compute_loss_given_execution_plan_batched([execution_map], [desc_enc], ke=ke)
+                
+                mle_losses.append(mle_losse[0])
+                rule_losses.append(rule_loss)
+                rule_logits.append(rule_logit)
+
+                assert not self.use_align_loss
+
+
+            rule_logits = torch.nn.utils.rnn.pad_sequence(rule_logits,batch_first=True,padding_value=0)
+            # pointer_logits = torch.nn.utils.rnn.pad_sequence(pointer_logits,batch_first=True,padding_value=0)
+            # ref_logits = torch.nn.utils.rnn.pad_sequence(ref_logits,batch_first=True,padding_value=0)
+
+            # pointer_logits 的维度有问题，先不用, 原因是因为point logits [a,b] 中b会因为grounding类型的不同，b的大小不同，导致无法pad
+            
+            # return mle_losses, rule_logits
+            return torch.mean(torch.stack(mle_losses, dim=0), dim=0), torch.mean(torch.stack(rule_losses, dim=0), dim=0), rule_logits
+
+        else:
+            
+            mle_losses = self.compute_loss_given_execution_plan_batched(execution_maps, desc_encs)
+            assert not self.use_align_loss
+            return mle_losses
 
     @staticmethod
     def compute_decoder_input(enc_input, example, desc_enc, 
@@ -586,12 +618,14 @@ class BreakDecoder(torch.nn.Module):
 
         return copy.deepcopy(traversal.traversal_step_log)
 
-    def compute_loss_given_execution_plan_batched(self, decoder_inputs_batch, desc_enc_batch):
+    def compute_loss_given_execution_plan_batched(self, decoder_inputs_batch, desc_enc_batch, ke=False, parameter=None):
 
         model = self
 
+
         # sort by decreasing lengths
         batch_size = len(decoder_inputs_batch)
+
         decoder_length = [len(plan) for plan in decoder_inputs_batch]
         new_batch_order = [i_ for l_, i_ in sorted(zip(decoder_length, list(range(batch_size))), reverse=True)]
         decoder_inputs_batch = [decoder_inputs_batch[i_] for i_ in new_batch_order]
@@ -646,7 +680,7 @@ class BreakDecoder(torch.nn.Module):
         node_type_idx_for_step_and_batch = torch.nn.utils.rnn.pad_sequence(node_type_idx_for_step_and_batch,
                                                                            batch_first=False,
                                                                            padding_value=padding_value)
-
+        # so far 这里都是没啥问题
         # prepare action embeddings and a loss map
         action_embeddings_all_dict = {"zero_rule_emb" : model.zero_rule_emb}
         action_embeddings_index_for_key = {"zero_rule_emb" : 0}
@@ -787,6 +821,7 @@ class BreakDecoder(torch.nn.Module):
         node_type_idx_for_step_and_batch_cur = node_type_idx_for_step_and_batch
         action_emb_idx_for_step_and_batch_cur = action_emb_idx_for_step_and_batch
         parent_node_idx_for_step_and_batch_cur = parent_node_idx_for_step_and_batch
+
         for i_step in range(max_num_steps):
             while i_step >= decoder_length[batch_size_cur - 1] - 1:
                 batch_size_cur = batch_size_cur - 1
@@ -856,13 +891,20 @@ class BreakDecoder(torch.nn.Module):
         batch_index = torch.arange(batch_size, device=outputs.device).unsqueeze(0).expand(loss_matrix.size())
 
         # loss_type == 1
+
         loss_mask = loss_type_for_batch_and_step == 1
         if loss_mask.sum().item() > 0: # have any elements with this loss
             outputs_for_loss = torch.masked_select(outputs, loss_mask.unsqueeze(2))
             outputs_for_loss = outputs_for_loss.view(-1, outputs.size(-1))
             loss_targets = loss_target_for_batch_and_step[loss_mask]
-            
-            rule_logits = model.rule_logits(outputs_for_loss)
+
+            if parameter is not None:
+                fmodel = make_functional(model.rule_logits).eval()
+                rule_logits = fmodel(outputs_for_loss, params=parameter)
+
+            else:
+                rule_logits = model.rule_logits(outputs_for_loss)
+
             losses_this_type = model.xent_loss(rule_logits, loss_targets, reduction="none")
             if losses_this_type.shape == (1, rule_logits.shape[0], rule_logits.shape[1]):
                 losses_this_type = losses_this_type.sum(2).view(-1) # carefull with the dimensions here!
@@ -870,8 +912,9 @@ class BreakDecoder(torch.nn.Module):
                 pass
             else:
                 raise RuntimeError(f"Cannot process the output of the loss of the shape {losses_this_type.shape}")
-                
+            #  也许只可以把这个loss提出来
             loss_matrix[loss_mask] = losses_this_type
+            rule_loss = losses_this_type.sum()
 
         # loss_type == 2
         loss_mask = loss_type_for_batch_and_step == 2
@@ -924,7 +967,8 @@ class BreakDecoder(torch.nn.Module):
                 pass
             else:
                 raise RuntimeError(f"Cannot process the output of the loss of the shape {losses_this_type.shape}")
-
+            
+            
             loss_matrix[loss_mask] = losses_this_type
 
         # loss_type == 3
@@ -943,6 +987,8 @@ class BreakDecoder(torch.nn.Module):
             ref_logits.masked_fill_(ref_logits_mask_inf, float('-inf'))
 
             losses_this_type = model.ref_loss(ref_logits, loss_targets)
+
+            
             loss_matrix[loss_mask] = losses_this_type
 
         losses_new_order = loss_matrix.sum(0, keepdim=False)
@@ -951,17 +997,27 @@ class BreakDecoder(torch.nn.Module):
         # reverse transform:
         for j_, i_ in enumerate(new_batch_order):
             losses[i_] = losses_new_order[j_]
-        return losses
 
-    def begin_inference(self, desc_enc):
+        # 需要在这里在这里把logits取出来, 一共有三种logits
+        # print('~~~~~losses.shape~~~~~~~~~', losses.shape)
+
+        if ke: 
+            return losses, rule_loss, rule_logits
+        else:
+            return losses
+
+
+    def begin_inference(self, desc_enc, parameter=None):
         # desc_enc is encoder output
         # self.preproc.all_rules -> qdmr grammar rules
         rules_index = {v: idx for idx, v in enumerate(self.preproc.all_rules)}
-        traversal = InferenceTreeTraversal(self, desc_enc, rules_index=rules_index)
+        if parameter is not None:
+            traversal = InferenceTreeTraversal(self, desc_enc, rules_index=rules_index, parameter=parameter)
+        else:
+            traversal = InferenceTreeTraversal(self, desc_enc, rules_index=rules_index)
         # traversal is an object
         choices = traversal.step(None)
         # choices is [((int, tensor))] 
-               
         return traversal, choices
 
     def _desc_attention(self, prev_state, desc_enc):
@@ -1038,7 +1094,9 @@ class BreakDecoder(torch.nn.Module):
             prev_action_emb, prev_action_emb_type, prev_action_emb_idx,
             parent_h, parent_h_idx,
             parent_action_emb,
-            desc_enc):
+            desc_enc,
+            parameter=None
+            ):
         new_state, _ = self._update_state(
             node_type, prev_state,
             prev_action_emb, prev_action_emb_type, prev_action_emb_idx,
@@ -1048,7 +1106,13 @@ class BreakDecoder(torch.nn.Module):
         # output shape: batch (=1) x emb_size
         output = new_state[0]
         # rule_logits shape: batch (=1) x num choices
-        rule_logits = self.rule_logits(output)
+        # rule 1 x 96 96条rules都在grammar_rules.json里，包括comparativeOP superlativeOP，所以我们可以用rule_logits作为我们的logits
+        if parameter is not None:
+            fmodel = make_functional(self.rule_logits).eval()
+            rule_logits = fmodel(output, params=parameter)
+        else:
+            rule_logits = self.rule_logits(output)
+        # 这个 rule_logits 也许可以作为我们的logits
 
         return output, new_state, rule_logits
 
