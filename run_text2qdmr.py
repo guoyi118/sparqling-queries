@@ -16,7 +16,7 @@ parser.add_argument('--backend_ditributed', type=str, default="nccl", help="back
 parser.add_argument('--partition', help="optional choice of partition (for preprocess)")
 args = parser.parse_args()
 
-from text2qdmr.commands import preprocess, train, infer, eval
+from text2qdmr.commands import preprocess, train, infer, eval, oneshot
 from text2qdmr.utils import registry
 
 import torch
@@ -210,26 +210,26 @@ def main():
                     part=exp_config.get("part", 'spider'),
                     data=data,
                 )
-                infer.main(infer_config)
+                oneshot.main(infer_config)
 
-            eval_output_path = f"{exp_config['eval_output']}/{exp_config['eval_name']}-step{step}.eval"
-            eval_config = EvalConfig(
-                model_config_file,
-                model_config_args,
-                logdir,
-                exp_config["eval_section"],
-                infer_output_path,
-                eval_output_path,
-                exp_config["eval_tb_dir"],
-                vis_dir=exp_config.get("vis_dir"),
-                part=exp_config.get("part", 'spider'),
-                data=data,
-                virtuoso_server=exp_config.get("virtuoso_server"),
-            )
-            eval_output_path = eval.main(eval_config)
+            # eval_output_path = f"{exp_config['eval_output']}/{exp_config['eval_name']}-step{step}.eval"
+            # eval_config = EvalConfig(
+            #     model_config_file,
+            #     model_config_args,
+            #     logdir,
+            #     exp_config["eval_section"],
+            #     infer_output_path,
+            #     eval_output_path,
+            #     exp_config["eval_tb_dir"],
+            #     vis_dir=exp_config.get("vis_dir"),
+            #     part=exp_config.get("part", 'spider'),
+            #     data=data,
+            #     virtuoso_server=exp_config.get("virtuoso_server"),
+            # )
+            # eval_output_path = eval.main(eval_config)
 
-            res_json = json.load(open(eval_output_path))
-            print('exec', step, res_json['total_scores']['ex_val'], res_json['total_scores']['ex_test'])
+            # res_json = json.load(open(eval_output_path))
+            # print('exec', step, res_json['total_scores']['ex_val'], res_json['total_scores']['ex_test'])
 
 
 if __name__ == "__main__":

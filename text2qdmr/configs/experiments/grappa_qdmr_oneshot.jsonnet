@@ -39,8 +39,9 @@
     eval_output: "__LOGDIR__/ie_dirs",
     eval_beam_size: 1,
     eval_steps: std.reverse([1000 * x for x in std.range(70, 81)]),
-    eval_section: ["val", "test"],
+    eval_section: ["test"],
     vis_dir: "full_val",
+    shuffle: true,
     eval_tb_dir: "runs_viz/%s_%s" % [self.name, self.eval_section],
     eval_strict_decoding: true,
     # virtuoso_server: 'http://link_to_virtuoso_server/'
