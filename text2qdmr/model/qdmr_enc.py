@@ -1570,7 +1570,8 @@ class Bertokens:
 
         self.normalized_pieces = normalized_toks
         self.recovered_pieces = new_toks
-
+    
+    # schema linking is over here
     def bert_schema_linking(self, columns, tables, value_unit_dict=None):
         question_tokens = self.normalized_pieces
         column_tokens = [c.normalized_pieces for c in columns]

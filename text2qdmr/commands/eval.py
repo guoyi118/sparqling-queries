@@ -66,6 +66,7 @@ def main(args):
             inferred_code = None
         assert 'name' in infer_results
         name = infer_results['name']
+        # 通过推到出的 name 去数据集里找对应的记录
         section = infer_results['part']
         metrics.add(examples_with_name[name], inferred_code, section)
 

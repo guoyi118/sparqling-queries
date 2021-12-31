@@ -4,7 +4,7 @@ import json
 import os
 import sys
 import random
-
+import time
 import _jsonnet
 import torch
 import tqdm
@@ -65,7 +65,6 @@ class Oneshot:
                 
                 # "How many people live in countries that do not speak English?"
                 # "What are the names of the nations with the 3 lowest populations?"
-                
                 for i, (orig_item, preproc_item) in enumerate(zip(orig_data, preproc_data)):
 
                     if preproc_item[0]['raw_question'] == question:
@@ -126,7 +125,7 @@ class Oneshot:
         # schema 需要, 一个datbase的所有schema都是一样的
         # grounding choices
         _, validation_info = model.preproc.validate_item(data_item, section)
-            # validation_info[0]可以为空
+        # validation_info[0]可以为空
 
         # todo， 明天沿着validation_info继续挖掘 ，看看 orig_item 和 preproc_item在infer时怎么用的。
         # 目前来说，，orig_item里所用到的 schema 和 columnname都是一整个数据集一样的。 
@@ -199,15 +198,30 @@ class Oneshot:
         # only one in beams
 
         decoded = []
-        
+        print('~~~~~~~~~~~~question~~~~~~~~~~~~~~~~~~~~~~~~')
+        print(preproc_item[0]['raw_question'])
         for beam in beams: # len(beams) = 1
             model_output, inferred_code = beam.inference_state.finalize()
             # 一个 model_output 是tree 结构 qdmr
             # inferred_code， 正常结构的qdmr
-            print('~~~~~~~~~~~action sequence~~~~~~~~~~~~')
+            time.sleep(3)
+            print('~~~~~~~~~~ model output:action sequence ~~~~~~~~~~~~')
             print(model_output)
-            print('~~~~~~~~~~~~QDMR~~~~~~~~~~~~~~~~~')
-            print(inferred_code)
+            # print('~~~~~~~~~~~~QDMR~~~~~~~~~~~~~~~~~')
+            # print(inferred_code)
+            print('~~~~~~~~ action sequence-> QMDR~~~~~~~~~~~~~`')
+            qdmr = []
+            for i in range(len(inferred_code)):
+                operator = {
+                    'step' : i + 1,
+                    'type' : inferred_code[i][0],
+                    'args' : [
+                        j.arg for j in inferred_code[i][1]
+                    ]
+                }
+                qdmr.append(operator)
+            print(qdmr)
+
             decoded.append({
                 'orig_question': data_item.text, #输入的问题
                 'model_output': model_output, #action sequence
@@ -256,13 +270,15 @@ def main(args):
     oneshot= Oneshot(config)
     model = oneshot.load_model(args.logdir, args.step)
 
+    # What are the names of cities in Europe for which English is not the official language?
+
     # How many people live in countries that do not speak English?
     # What are the names of the nations with the 3 lowest populations?
+    # Which regions speak Dutch or English?
     # Which Asian countries have a population that is larger than any country in Africa?
 
     while True:
         question = input('Input a question: ')
-        print(question)
         if question == 'quit':
             break
         else:

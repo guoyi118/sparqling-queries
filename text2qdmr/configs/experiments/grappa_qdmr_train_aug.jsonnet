@@ -40,6 +40,7 @@
     eval_beam_size: 1,
     eval_steps: std.reverse([1000 * x for x in std.range(70, 81)]),
     eval_section: ["val", "test"],
+    limit: 50,
     vis_dir: "full_val",
     eval_tb_dir: "runs_viz/%s_%s" % [self.name, self.eval_section],
     eval_strict_decoding: true,

@@ -108,10 +108,15 @@ class Metrics:
 
     def compare_sql_qdmr(self, qdmr, sql, schema, rdf_graph, grnd, tl=60, ordered=False, verbose=True):
         got_correct_answer, error_details = False, None
+        # print(sql)
+        # sql 是sql 语句
+        # SELECT count(*) FROM Courses
         try:
             sql_result = QueryResult.execute_query_sql(sql, schema)
         except Exception as e:
             return False, None
+
+        # sql results : QueryResult(source_type='SQL', output_cols=[OutputColumnId(grounding_column=None, aggregator='count')], data=[(15.0,)], sorting_info=None, maxmin_via_limit=False)
 
         try:
             with time_limit(tl):
@@ -169,6 +174,7 @@ class Metrics:
             schema, rdf_graph = break_item.eval_graphs
 
             sql = break_item.orig_spider_entry['query']
+            # sql是break_item里带的
             sql_hardness = self.eval_hardness(break_item.orig_spider_entry['sql'])
             ordered = True if break_item.sql_code['orderBy'] else False
         
