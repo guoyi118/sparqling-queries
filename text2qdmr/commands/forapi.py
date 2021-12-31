@@ -66,8 +66,8 @@ class Forapi:
                 # "How many people live in countries that do not speak English?"
                 # "What are the names of the nations with the 3 lowest populations?"
                 for i, (orig_item, preproc_item) in enumerate(zip(orig_data, preproc_data)):
-
-                    if preproc_item[0]['raw_question'] == arg.question:
+                    
+                    if preproc_item[0]['raw_question'] == args.question:
                         sliced_orig_data.append(orig_item)
                         sliced_preproc_data.append(preproc_item)
 
@@ -184,18 +184,10 @@ class Forapi:
         # only one in beams
 
         decoded = []
-        print('~~~~~~~~~~~~question~~~~~~~~~~~~~~~~~~~~~~~~')
-        print(preproc_item[0]['raw_question'])
         for beam in beams: # len(beams) = 1
             model_output, inferred_code = beam.inference_state.finalize()
             # 一个 model_output 是tree 结构 qdmr
             # inferred_code， 正常结构的qdmr
-            time.sleep(3)
-            print('~~~~~~~~~~ model output:action sequence ~~~~~~~~~~~~')
-            print(model_output)
-            # print('~~~~~~~~~~~~QDMR~~~~~~~~~~~~~~~~~')
-            # print(inferred_code)
-            print('~~~~~~~~ action sequence-> QMDR~~~~~~~~~~~~~`')
             qdmr = []
             for i in range(len(inferred_code)):
                 operator = {
@@ -210,14 +202,8 @@ class Forapi:
 
             decoded.append({
                 'orig_question': data_item.text, #输入的问题
-                'model_output': model_output, #action sequence
-                'inferred_code': inferred_code, # qdmr
-                'qdmr' : qdmr,
-                'score': beam.score,
-                **({
-                       'choice_history': beam.choice_history,
-                       'score_history': beam.score_history,
-                   } if output_history else {})})
+                'qdmr' : str(qdmr)
+                })
         return decoded
 
 
