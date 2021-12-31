@@ -1,0 +1,205 @@
+[
+    {
+    "orig_question": "What are all distinct countries where singers above age 20 are from?",
+    "model_output": {
+        "_type": "root",
+        "step": {
+            "_type": "NextStepSelect",
+            "select": {
+                "_type": "select",
+                "is_distinct": {
+                    "_type": "False"
+                },
+                "grounding": 1,
+
+                "step": {
+                    "_type": "NextStepProject",
+                    "project": {
+                        "_type": "project",
+                        "is_distinct": {
+                            "_type": "False"
+                        },
+                        "project_1arg": {
+                            "_type": "GroundingProjectArg",
+                            "grounding": 16
+                        },
+                        "ref": 0,
+                        "step": {
+                            "_type": "NextStepComp",
+                            "comparative": {
+                                "_type": "comparative",
+                                "is_distinct": {
+                                    "_type": "False"
+                                },
+                                "ref1": 0,
+                                "ref2": 1,
+                                "comparative_3arg_type": {
+                                    "_type": "CompArg",
+                                    "comp_op_type": {
+                                        "_type": "CompOp",
+                                        "comparative_ops": {
+                                            "_type": "Gt"
+                                        }
+                                    },
+                                    "column_type": {
+                                        "_type": "ColumnGrounding",
+                                        "grounding": 16
+                                    },
+                                    "comp_val": {
+                                        "_type": "CompGrounding",
+                                        "grounding": 25
+                                    }
+                                },
+                                "step": {
+                                    "_type": "NextStepProject",
+                                    "project": {
+                                        "_type": "project",
+                                        "is_distinct": {
+                                            "_type": "False"
+                                        },
+                                        "project_1arg": {
+                                            "_type": "GroundingProjectArg",
+                                            "grounding": 13
+                                        },
+                                        "ref": 2,
+                                        "step": {
+                                            "_type": "NextStepProject",
+                                            "project": {
+                                                "_type": "project",
+                                                "is_distinct": {
+                                                    "_type": "True"
+                                                },
+                                                "project_1arg": {
+                                                    "_type": "NoneProjectArg"
+                                                },
+                                                "ref": 3,
+                                                "step": {
+                                                    "_type": "FinalStep"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        },
+        "QDMR": [
+            [
+                "select",
+                [
+                    {
+                        "arg_type": "grounding",
+                        "arg": {
+                            "type": "tbl",
+                            "keys": [
+                                "singer"
+                            ]
+                        }
+                    }
+                ],
+                false
+            ],
+            [
+                "project",
+                [
+                    {
+                        "arg_type": "grounding",
+                        "arg": {
+                            "type": "col",
+                            "keys": [
+                                "singer",
+                                "Age"
+                            ]
+                        }
+                    },
+                    {
+                        "arg_type": "ref",
+                        "arg": [
+                            "#1"
+                        ]
+                    }
+                ],
+                false
+            ],
+            [
+                "comparative",
+                [
+                    {
+                        "arg_type": "ref",
+                        "arg": [
+                            "#1"
+                        ]
+                    },
+                    {
+                        "arg_type": "ref",
+                        "arg": [
+                            "#2"
+                        ]
+                    },
+                    {
+                        "arg_type": "grounding",
+                        "arg": {
+                            "type": "comparative",
+                            "keys": [
+                                ">",
+                                "20",
+                                {
+                                    "type": "col",
+                                    "keys": [
+                                        "singer",
+                                        "Age"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                        false
+                    ],
+                    [
+                        "project",
+                        [
+                            {
+                                "arg_type": "grounding",
+                                "arg": {
+                                    "type": "col",
+                                    "keys": [
+                                        "singer",
+                                        "Country"
+                                    ]
+                                }
+                            },
+                            {
+                                "arg_type": "ref",
+                                "arg": [
+                                    "#3"
+                                ]
+                            }
+                        ],
+                        false
+                    ],
+                    [
+                        "project",
+                        [
+                            {
+                                "arg_type": "grounding",
+                                "arg": null
+                            },
+                            {
+                                "arg_type": "ref",
+                                "arg": [
+                                    "#4"
+                                ]
+                            }
+                        ],
+                        true
+                    ]
+                ],
+            }
+        ]
+    }}
+]

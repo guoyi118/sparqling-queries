@@ -196,4 +196,4 @@ server/services/generator/server/generators/
 data/
 third_party/
 spider_temp.zip
-logdir/
+grappa-aug_model_checkpoint-00072000
