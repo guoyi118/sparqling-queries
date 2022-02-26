@@ -252,7 +252,7 @@ class EncDecModel(torch.nn.Module):
                 
             return ZippedDataset(self.enc_preproc.dataset(section), self.dec_preproc.dataset(section))
         # 为Knowledge editor新写了一个dataset函数
-        def dataset_KE(self, section, orig_data, two_datasets=False, config=None): 
+        def dataset_KE(self, section, orig_data, part, two_datasets=False, config=None): 
 
             
             # assert len(self.enc_preproc.dataset(section)) == len(self.dec_preproc.dataset(section)), f"Lengths don't match: {lengths}"
@@ -331,7 +331,10 @@ class EncDecModel(torch.nn.Module):
 
             # we are here
                 
-            return ZippedDataset(encode_data, correct_decode_data, wrong_decode_data), filtered_orig_data
+            if part == "train":
+                return ZippedDataset(encode_data[:4500], correct_decode_data[:4500], wrong_decode_data[:4500]), filtered_orig_data[:4500]
+            elif part == "val":
+                return ZippedDataset(encode_data[4500:], correct_decode_data[4500:], wrong_decode_data[4500:]), filtered_orig_data[4500:]
 
         
     def __init__(self, preproc, device, encoder, decoder):

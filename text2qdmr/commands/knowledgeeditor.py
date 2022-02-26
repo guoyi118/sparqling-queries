@@ -1,11 +1,12 @@
 import argparse
 import itertools
 import json
-import os
 import sys
+import os 
+sys.path.append('/root/sparqling-queries')
 import random
 import operator
-
+from pytorch_lightning.plugins import DDPPlugin
 import _jsonnet
 import torch
 import tqdm
@@ -41,6 +42,8 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 import pandas as pd 
 from torch.utils.data import Dataset
+
+os.environ['CUDA_LAUNCH_BLOCKING']= '1'
 
 @attr.s
 class Hypothesis:
@@ -148,6 +151,7 @@ class ConditionedParameter(torch.nn.Module):
 
     def forward(self, inputs, grad):
         # 它这里写的跟论文里有出入，直接就是用一个 全链接层组成的module 暴力输出一个长vector， 然后再split成5个
+        torch.cuda.empty_cache()
         if len(self.parameter_shape) == 2:
             (
                 conditioner_cola,
@@ -218,6 +222,7 @@ class LSTMConditioner(torch.nn.Module):
         )
 
     def forward(self, inputs, masks):
+        torch.cuda.empty_cache()
         return self.linear(self.lstm(self.embedding(inputs), masks))
 
 
@@ -268,6 +273,7 @@ class OneShotLearner(torch.nn.Module):
 
     def forward(self, inputs, masks, grads=None):
         condition = self.condition(inputs, masks)
+        torch.cuda.empty_cache()
         return {
             #{name: shift of parameter}
             p: self.conditioners[self.param2conditioner_map[p]](
@@ -294,13 +300,13 @@ class text2sqlAugmented(LightningModule):
             type=str,
             default="src/datasets/fever-dev-kilt.jsonl",
         )
-        parser.add_argument("--batch_size", type=int, default=2)
-        parser.add_argument("--lr", type=float, default=3e-4)
+        parser.add_argument("--batch_size", type=int, default=10)
+        parser.add_argument("--lr", type=float, default=5e-4)
         parser.add_argument("--lr_alpha", type=float, default=1e-1)
         parser.add_argument("--max_length", type=int, default=512)
         parser.add_argument("--total_num_updates", type=int, default=200000)
         parser.add_argument("--warmup_updates", type=int, default=1000)
-        parser.add_argument("--num_workers", type=int, default=3)
+        parser.add_argument("--num_workers", type=int, default=5)
 
         parser.add_argument("--model_name", type=str, default="bert-base-uncased")
         parser.add_argument(
@@ -316,7 +322,7 @@ class text2sqlAugmented(LightningModule):
         parser.add_argument("--max_scale", type=float, default=1)
         parser.add_argument("--p", type=float, default=2)
         parser.add_argument(
-            "--divergences", type=str, choices=["kl", "lp", "both"], default="both"
+            "--divergences", type=str, choices=["kl", "lp", "both"], default="kl"
         )
         parser.add_argument("--use_views", action="store_true")
 
@@ -338,8 +344,8 @@ class text2sqlAugmented(LightningModule):
         #     self.hparams.model_checkpoint
         # ).model.eval()
 
-        # self.adjust_part = 'rule_model'
-        self.adjust_part = 'bert_rule_logits'
+        self.adjust_part = 'rule_model'
+        # self.adjust_part = 'bert_rule_logits'
 
         if self.adjust_part == 'bert':
             # bert 模式有问题，没有对上logits，以及params dictkeys有问题
@@ -414,8 +420,14 @@ class text2sqlAugmented(LightningModule):
                     if any(
                         e in n.lower()
                         for e in (
-                            ".layers.0.",
-                            ".layer.0."   # 先试看第一层
+                            ".layer.0." ,
+                            ".layer.1." ,
+                            ".layer.2." ,
+                            ".layer.3." ,
+                            ".layer.20." ,
+                            ".layer.21." ,
+                            ".layer.22." ,
+                            ".layer.23.",# 先试看第一层
                         )
                     )
                 },
@@ -452,7 +464,7 @@ class text2sqlAugmented(LightningModule):
         else:
             orig_data = self.infer_config.data
 
-        preproc_data, filter_orig_data = self.Infer.model_preproc.dataset_KE(self.section, orig_data, two_datasets=self.Infer.config.get('full_data'))
+        preproc_data, filter_orig_data = self.Infer.model_preproc.dataset_KE(self.section, orig_data, 'train', two_datasets=self.Infer.config.get('full_data'))
 
         preproc_data.part = self.infer_config.part
 
@@ -480,7 +492,7 @@ class text2sqlAugmented(LightningModule):
         else:
             orig_data = self.infer_config.data
 
-        preproc_data, filter_orig_data = self.Infer.model_preproc.dataset_KE(self.section, orig_data, two_datasets=self.Infer.config.get('full_data'))
+        preproc_data, filter_orig_data = self.Infer.model_preproc.dataset_KE(self.section, orig_data, 'val', two_datasets=self.Infer.config.get('full_data'))
 
         preproc_data.part = self.infer_config.part
 
@@ -504,6 +516,7 @@ class text2sqlAugmented(LightningModule):
 
     def get_logits_orig_params_dict(self, batch):
         with torch.enable_grad():
+            torch.cuda.empty_cache()
 
             if self.adjust_part == 'bert':
 
@@ -597,7 +610,7 @@ class text2sqlAugmented(LightningModule):
                     name: grad for (name, _), grad in zip(self.model.encoder.bert_model.named_parameters(), grads)
                 }
 
-
+        torch.cuda.empty_cache()
         params_dict = self.learner(
             batch["cond_input_ids"],
             batch["cond_attention_mask"],
@@ -607,9 +620,8 @@ class text2sqlAugmented(LightningModule):
         return logits_orig, params_dict
 
     def forward(self, batch, logits_orig=None, params_dict=None):
-        if not params_dict:
-            logits_orig, params_dict = self.get_logits_orig_params_dict(batch)
-
+        logits_orig, params_dict = self.get_logits_orig_params_dict(batch)
+        torch.cuda.empty_cache()
 
         if self.adjust_part == 'bert':
             _ , __, logits = self.model.eval()(batch['src_trg'], ke=True, bert_parameter=[params_dict.get(n, 0) + p for n, p in self.model.encoder.named_parameters()])
@@ -618,72 +630,79 @@ class text2sqlAugmented(LightningModule):
         elif self.adjust_part == 'bert_rule_logits':
             _ , __, logits = self.model.eval()(batch['src_trg'], ke=True, bert_parameter=[params_dict.get(n, 0) + p for n, p in self.model.encoder.bert_model.named_parameters()])
 
-
+        torch.cuda.empty_cache()
         return logits_orig, logits, params_dict
 
 
-    def get_kl_lp_cr(self, logits_orig, logits, labels, params_dict):
-        # TODO  可能有问题看一下
+    def get_kl_lp_cr(self, logits_orig, logits, labels, params_dict, batch):
+        torch.cuda.empty_cache()
+        try:
+            kl = torch.distributions.kl_divergence(
+                torch.distributions.Categorical(logits=logits_orig),
+                torch.distributions.Categorical(
+                    logits=logits[: -2 if self.hparams.use_views else -1]
+                ),
+            )
+        except:
+            print('~~~~~~~~~KL-error~~~~~~~~~~~~~~')
+            print(logits_orig)
+            print('~~~~~~~~~batch~~~~~~~~~~~~~~')
+            print(batch) 
 
-        kl = torch.distributions.kl_divergence(
-            torch.distributions.Categorical(logits=logits_orig),
-            torch.distributions.Categorical(
-                logits=logits[: -2 if self.hparams.use_views else -1]
-            ),
-        )
-
-        # print(params_dict)
-
-        # 暂时去掉lp
-
-        # lp = sum(
-        #     (p.abs() ** self.hparams.p).mean() ** (1 / self.hparams.p)
-        #     for p in params_dict.values()
-        # ) / len(params_dict)
-
-        lp = 0 
-
-        #  for all loss
-        # cr = self.model([labels[-1]])
-
-        _, cr, __ = self.model([labels[-1]] ,ke=True)
+        
+        lp = sum(
+            (p.abs() ** self.hparams.p).mean() ** (1 / self.hparams.p)
+            for p in params_dict.values()
+        ) / len(params_dict)
 
 
+        if self.adjust_part == 'bert':
+            _ , cr, __ = self.model.eval()([labels[-1]], ke=True, bert_parameter=[params_dict.get(n, 0) + p for n, p in self.model.encoder.named_parameters()])
+        elif self.adjust_part == 'rule_model':
+            _ , cr, __ = self.model.eval()([labels[-1]], ke=True, rule_parameter=[params_dict.get(n, 0) + p for n, p in self.model.decoder.rule_logits.named_parameters()])
+        elif self.adjust_part == 'bert_rule_logits':
+            _ , cr, __ = self.model.eval()([labels[-1]], ke=True, bert_parameter=[params_dict.get(n, 0) + p for n, p in self.model.encoder.bert_model.named_parameters()])
+
+
+        torch.cuda.empty_cache()
         return kl, lp, cr
 
     def training_step(self, batch, batch_idx=None):
-
+        torch.cuda.empty_cache()
         logits_orig, logits, params_dict = self.forward(batch)
-
-        kl, lp , cr = self.get_kl_lp_cr(
-            logits_orig, logits, batch["src_trg"], params_dict
+        
+        kl, lp, cr = self.get_kl_lp_cr(
+            logits_orig, logits, batch["src_trg"], params_dict, batch
         )
         kl = kl.mean()
         cr = cr.mean(-1)
 
         loss_kl = self.alpha_kl * (kl - self.margin_kl)
-        loss_lp = 0 *self.alpha_lp * (lp - self.margin_lp)
+
+        # loss_lp = self.alpha_lp * (lp - self.margin_lp)
+
+        # loss_cr = self.alpha_lp * (cr - self.margin_lp)
+
 
 
         if self.hparams.divergences == "both":
             loss = cr + loss_kl + loss_lp
-            
         elif self.hparams.divergences == "kl":
             loss = cr + loss_kl
         elif self.hparams.divergences == "lp":
             loss = cr + loss_lp
-
+            
         self.log("alpha_kl", self.alpha_kl, on_step=True, on_epoch=False, prog_bar=True)
         self.log("alpha_lp", self.alpha_lp, on_step=True, on_epoch=False, prog_bar=True)
         self.log("kl", kl, on_step=True, on_epoch=False, prog_bar=True)
         # self.log("lp", lp, on_step=True, on_epoch=False, prog_bar=True)
         self.log("cr", cr, on_step=True, on_epoch=False, prog_bar=True)
-        self.log("loss", loss, on_step=True, on_epoch=False, prog_bar=True)
-
+        self.log("training_loss", loss, on_step=True, on_epoch=False, prog_bar=True)
+        torch.cuda.empty_cache()
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx=None):
-
+        torch.cuda.empty_cache()
         logits_orig, logits, params_dict = self.forward(batch)
 
         beam_size = 1
@@ -707,6 +726,7 @@ class text2sqlAugmented(LightningModule):
 
             guess += [tree]
         
+        torch.cuda.empty_cache()
         acc = torch.tensor(
             [str(a).lower().strip() == str(b).lower().strip() for a, b in zip(guess, gold)]
         ).long()
@@ -831,8 +851,9 @@ class text2sqlAugmented(LightningModule):
 class Inferer:
     def __init__(self, config):
         self.config = config
+        torch.cuda.empty_cache()
         if torch.cuda.is_available():
-            self.device = torch.device('cuda')
+            self.device = torch.device('cuda:2')
         else:
             self.device = torch.device('cpu')
             torch.set_num_threads(1)
@@ -845,6 +866,7 @@ class Inferer:
     def load_model(self, logdir, step):
         '''Load a model (identified by the config used for construction) and return it'''
         # 1. Construct model
+        torch.cuda.empty_cache()
         model = registry.construct('model', self.config['model'], preproc=self.model_preproc, device=self.device)
         model.to(self.device)
         model.eval()
@@ -861,6 +883,7 @@ class Inferer:
         output = open(output_path, 'w')
         
         with torch.no_grad():
+            torch.cuda.empty_cache()
             for section in args.section:
                 if self.config.get('full_data') is not None and args.part != 'spider':
                     orig_data = registry.construct('dataset', self.config['full_data'][section])
@@ -919,7 +942,7 @@ class Inferer:
 
             #     }, cls=ComplexEncoder) + '\n')
             # inputneed.flush()       
-
+            torch.cuda.empty_cache()
             output.write(
                 json.dumps({
                     'name': orig_item.full_name,
@@ -977,7 +1000,7 @@ class Inferer:
 
     def _infer_one(self, model, data_item, preproc_item, beam_size, output_history=False, strict_decoding=False, section='val',bert_parameter=None, rule_parameter=None):
         #data_item is for one question
-
+        torch.cuda.empty_cache()
         # data_item
         # dict_keys(['subset_idx', 'text', 'text_toks', 'text_toks_for_val', 'qdmr_code', 'qdmr_ops', 'qdmr_args', 'grounding', 'values', 'column_data', 'sql_code', 'schema', 'eval_graphs', 'orig_schema', 'orig_spider_entry', 'db_id', 'subset_name', 'full_name'])
         
@@ -1221,11 +1244,13 @@ if __name__ == '__main__':
         ),
     ]
 
-    trainer = Trainer.from_argparse_args(args, logger=logger, callbacks=callbacks)
+    trainer = Trainer.from_argparse_args(args, gpus="2", logger=logger, callbacks=callbacks, gradient_clip_val=0.5)
 
     augmented_model  = text2sqlAugmented(**vars(args))
 
     trainer.fit(augmented_model)
+
+
 
 
 
