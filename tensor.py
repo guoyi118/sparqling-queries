@@ -1,20 +1,37 @@
-import pickle
+import jsonlines
+from ast import literal_eval
+import pandas as pd 
 
-pickle_in = open("model_output_2_beam.pickle","rb")
-model_output_2_beam = pickle.load(pickle_in)
-print(len(model_output_2_beam))
-# print(list(model_output_2_beam.keys()))
-
-print(model_output_2_beam['SPIDER_dev_1031']['beam_2rd_output'])
-
-# print(model_output_2_beam['SPIDER_dev_0'])
+def sentencenormalization(input):
+    pased_input = literal_eval(input)
+    output = [d.replace("["," ").replace("]","").replace("'","").replace(",","")  for d in pased_input]
+    return ', '.join(output)
 
 
-# pickle_in = open("wrong_output.pickle","rb")
-# wrong_output = pickle.load(pickle_in)
-# print(len(wrong_output))
-# print(list(wrong_output.keys()))
+dev_df = pd.read_csv('/root/sparqling-queries/data/break/logical-forms-fixed/dev.csv')
+dev_df['program'] = dev_df['program'].apply(sentencenormalization)
 
-# print(wrong_output['SPIDER_dev_5'])
+dev_df.to_csv('/root/sparqling-queries/data/break/logical-forms-fixed/dev_normalized.csv')
 
+
+# with jsonlines.open("/root/sparqling-queries/data/break/logical-forms-fixed/train_alter_v2.jsonl") as f:
+#     for d in f:
+#         print(sentencenormalization(d["alternatives"]))
+        # print(
+        #     literal_eval(d["prediction"])[1].replace("["," ").replace("]"," ").replace("'","").replace(",","") + ","
+        #     )
+
+        # data.append(
+        #     {
+        #         k: d[k]
+        #         for k in (
+        #             "input",
+        #             # 问题
+        #             "prediction",
+        #             # 模型输出（错误）
+        #             "alternatives",
+        #             #模型可能输出的其他答案
+        #         )
+        #     }
+        # )
 

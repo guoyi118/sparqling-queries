@@ -193,7 +193,10 @@ server/services/generator/server/generators/
 
 # run output
 
-data/
+data/spider
+data/break/logical-forms-fixed/lightning_logs
+data/break/logical-forms-fixed/outputs
+
 third_party/
 spider_temp.zip
 grappa-aug_model_checkpoint-00072000

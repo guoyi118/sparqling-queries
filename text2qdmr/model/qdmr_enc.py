@@ -304,7 +304,7 @@ class BreakFullEncoderBertPreproc(abstract_preproc.AbstractPreproc):
         if self.pretrained_version == 'bert':
             self.pretrained_modelname = 'bert-large-uncased-whole-word-masking'
         elif self.pretrained_version == 'grappa':
-            self.pretrained_modelname = 'Salesforce/grappa_large_jnt'
+            self.pretrained_modelname = 'grappa'
             
         elif self.pretrained_version == 'roberta':
             self.pretrained_modelname = 'roberta-large'
