@@ -16,7 +16,7 @@ import csvs
 import csv
 import jsonlines
 import torchmetrics
-
+import random
 from transformers import AutoTokenizer
 from torch.optim import AdamW
 from torch.utils.data import Dataset, DataLoader
@@ -450,7 +450,7 @@ class SimpleT5:
             gpus=gpus,
             precision=precision,
             log_every_n_steps=1,
-            strategy='ddp'
+            # strategy='ddp'
         )
 
         # fit trainer
@@ -481,7 +481,7 @@ class SimpleT5:
 
         if use_gpu:
             if torch.cuda.is_available():
-                self.device = torch.device("cuda:1")
+                self.device = torch.device("cuda")
             else:
                 raise "exception ---> no gpu found. set use_gpu=False, to use CPU"
         else:
@@ -562,6 +562,10 @@ class SimpleT5:
 # dev_data_df = pd.concat(dev_data, axis=1, keys=dev_data_header)
 # train_data_df.to_csv('train_data_df.csv', index=False)
 # dev_data_df.to_csv('dev_data_df.csv', index=False)
+
+# train_data_df = pd.read_csv('/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/train_data_df_spider.csv')
+# dev_data_df = pd.read_csv('/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/val_data_df_spider.csv')
+
 # ~~~~~~~model_training~~~~~~~~~~~~~~~
 
 # model = SimpleT5()
@@ -571,9 +575,9 @@ class SimpleT5:
 #             eval_df=dev_data_df, # pandas dataframe with 2 columns: source_text & target_text
 #             source_max_token_len = 128, 
 #             target_max_token_len = 256,
-#             batch_size = 32,
-#             max_epochs = 8,
-#             use_gpu = 4,
+#             batch_size = 8,
+#             max_epochs = 20,
+#             use_gpu = 1,
 #             outputdir = "outputs",
 #             early_stopping_patience_epochs = 0,
 #             precision = 32,
@@ -585,17 +589,17 @@ class SimpleT5:
 
 # model = SimpleT5()
 
-# model.load_model("t5","/root/sparqling-queries/data/break/logical-forms-fixed/outputs/simplet5-epoch-7-train-loss-0.1483-val-loss-0.1631", use_gpu=True)
-# model_output = model.predict("show me the afternoon flights from washington to boston ", num_return_sequences=5, num_beams=5)
+# model.load_model("t5","/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/outputs/devtrain_mix_simplet5-epoch-10-train-loss-0.0958-val-loss-0.0326", use_gpu=False)
+# model_output = model.predict("What is the maximum miles per gallon of the car with 8 cylinders or produced before 1980?", num_return_sequences=5, num_beams=5)
 # print(model_output[0])
 
 # ~~~~~~~~~~~predict~~~~~~~~~~~~~~~~~~~~~
-# evl_df = pd.read_csv('dev_normalized.csv')
+# evl_df = pd.read_csv('/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/train_data_df_spider.csv')
 # evl_data = [evl_df['question_id'], evl_df['question_text'], evl_df['program']]
 # evl_data_header =  ["id","source_text", "target_text"]
 # evl_data_df = pd.concat(evl_data, axis=1, keys=evl_data_header)
 
-# sample = evl_data_df[:100]
+# sample = evl_df[:100]
 # sample_source = sample['source_text'].tolist()
 # sample_target = sample['target_text'].tolist()
 # sample_id = sample['id'].tolist()
@@ -629,44 +633,63 @@ class SimpleT5:
 
 # ~~~~~~~alternative_dataset~~~~~~~~~~~~~~
 
-device = 0
-print('~~~~~~train_device~~~~~~', device)
-train_spider = pd.read_csv('train_normalized.csv')
+# device = 0
+# print('~~~~~~dev_device~~~~~~', device)
+# train_data_df = pd.read_csv('/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/val_data_df_spider.csv')
 
-train_data = [train_spider['question_id'], train_spider['question_text'], train_spider['program']]
-train_data_header =  ["id","source_text", "target_text"]
-train_data_df = pd.concat(train_data, axis=1, keys=train_data_header)
+# train_data = [train_spider['question_id'], train_spider['question_text'], train_spider['program']]
+# train_data_header =  ["id","source_text", "target_text"]
+# train_data_df = pd.concat(train_data, axis=1, keys=train_data_header)
 
-if device == 0:
-    sample = train_data_df[:5000]
-else:
-    sample = train_data_df[device*5000:(device+1)*5000]
+# if device == 0:
+#     sample = train_data_df
+# else:
+#     sample = train_data_df[device*5000:(device+1)*5000]
 
-sample_id = sample['id'].tolist()
-sample_source = sample['source_text'].tolist()
-sample_target = sample['target_text'].tolist()
+# sample_id = sample['id'].tolist()
+# sample_source = sample['source_text'].tolist()
+# sample_target = sample['target_text'].tolist()
 
-model_outputs = []
+# model_outputs = []
 
-model = SimpleT5()
+# model = SimpleT5()
 
-model.load_model("t5","/root/sparqling-queries/data/break/logical-forms-fixed/outputs/simplet5-epoch-7-train-loss-0.1483-val-loss-0.1631", use_gpu=True)
+# model.load_model("t5","/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/outputs/simplet5-epoch-19-train-loss-0.0373-val-loss-0.7082", use_gpu=True)
 
-alternatives = []
+# alternatives = []
 
-for source in tqdm.tqdm(sample_source, total=len(sample_source)):
-    outputs = model.predict(source, num_return_sequences=5, num_beams=5)
-    # print(model_outputs)
-    output = outputs[0]
-    alt = random.choice(outputs[1:])
-    assert output, "empty model output"
-    model_outputs.append(output)
-    alternatives.append(alt)
+# question = []
 
-alternative_data = list(zip(sample_id, sample_source, model_outputs, alternatives))
-alternative_data_header =  ["id","source_text", "output_text", "alt_text"]
-alternative_data_df = pd.DataFrame(alternative_data, columns=alternative_data_header)
-alternative_data_df.to_csv('dev_alter_dataset_V3_device_%s.csv'%(device),index=False)
+# for source, target in tqdm.tqdm(zip(sample_source,sample_target), total=len(sample_source)):
+#     outputs = model.predict(source, num_return_sequences=5, num_beams=5)
+#     # print(model_outputs)
+#     output = outputs[0]
+#     alt = random.choice(outputs[1:])
+#     assert output, "empty model output"
+#     # beam alternatives
+#     question.append(source)
+#     model_outputs.append(output)
+#     alternatives.append(alt)
+#     ops = output.split(', ')
+#     # order modify alternatives
+#     if len(ops) >3:
+#         fliped_id = random.sample(range(1,len(ops)),2)
+#         ops[fliped_id[0]], ops[fliped_id[1]] = ops[fliped_id[1]], ops[fliped_id[0]]
+#         question.append(source)
+#         model_outputs.append(output)
+#         alternatives.append((', ').join(ops))
+
+#     # correction answer alternatives
+#     if output != target:
+#         question.append(source)
+#         model_outputs.append(output)
+#         alternatives.append(target)
+
+
+# alternative_data = list(zip(question, model_outputs, alternatives))
+# alternative_data_header =  ["source_text", "output_text", "alt_text"]
+# alternative_data_df = pd.DataFrame(alternative_data, columns=alternative_data_header)
+# alternative_data_df.to_csv('dev_alter_dataset_V5_device_%s.csv'%(device),index=False)
 
 
 # df1 = pd.read_csv('train_alter_dataset_V3_device_0.csv')
@@ -692,7 +715,7 @@ alternative_data_df.to_csv('dev_alter_dataset_V3_device_%s.csv'%(device),index=F
 # dev_df.to_csv('dev_alter_v3.csv', index=False)
 
     
-# # Open a csv reader called DictReader
+# Open a csv reader called DictReader
 
 # def make_json(csvFilePath, jsonFilePath):
      
@@ -707,30 +730,32 @@ alternative_data_df.to_csv('dev_alter_dataset_V3_device_%s.csv'%(device),index=F
 #         # and add it to data
 #         for rows in csvReader:
 #             line = {}
-#             line['id'] = rows['id']
+#             # line['id'] = rows['id']
 #             line['input'] = rows['source_text']
 #             line['prediction'] = rows['output_text']
 #             line['alternatives'] = rows['alt_text']
 
 #             data.append(line)
+    
+#     random.shuffle(data)
+#     random.shuffle(data)
 
- 
 #     # Open a json writer, and use the json.dumps()
 #     # function to dump data
 #     with jsonlines.open(jsonFilePath, "w") as f:
 #         f.write_all(data)
 
-# csvFilePath = 'train_alter_v3.csv'
-# jsonFilePath = 'train_alter_v3.jsonl'
+# csvFilePath = 'train_alter_dataset_V5_device_0.csv'
+# jsonFilePath = 'train_alter_v5.jsonl'
  
-# # # # Call the make_json function
+# # # Call the make_json function
 # make_json(csvFilePath, jsonFilePath)
 
 
-# csvFilePath = 'dev_alter_v3.csv'
-# jsonFilePath = 'dev_alter_v3.jsonl'
+# csvFilePath = 'dev_alter_dataset_V5_device_0.csv'
+# jsonFilePath = 'dev_alter_v5.jsonl'
  
-# # # # Call the make_json function
+# # # Call the make_json function
 # make_json(csvFilePath, jsonFilePath)
 
 #~
