@@ -1,0 +1,118 @@
+Country,Gold Medal,Silver Medal,Bronze Medal,Total,Sport,Continent
+Switzerland,5,1,3,9,Alpine Skiing,Europe
+Austria,3,3,1,7,Alpine Skiing,Europe
+France,1,1,1,3,Alpine Skiing,Europe
+Slovakia,1,0,0,1,Alpine Skiing,Europe
+Sweden,1,0,0,1,Alpine Skiing,Europe
+Italy,0,2,2,4,Alpine Skiing,Europe
+Norway,0,1,3,4,Alpine Skiing,Europe
+Germany,0,1,0,1,Alpine Skiing,Europe
+Slovenia,0,1,0,1,Alpine Skiing,Europe
+USA,0,1,0,1,Alpine Skiing,America
+Canada,0,0,1,1,Alpine Skiing,America
+Norway,6,2,6,14,Biathlon,Europe
+France,3,4,0,7,Biathlon,Europe
+Sweden,1,3,0,4,Biathlon,Europe
+Germany,1,0,1,2,Biathlon,Europe
+Russia,0,1,3,4,Biathlon,Europe
+Belarus,0,1,0,1,Biathlon,Europe
+Italy,0,0,1,1,Biathlon,Europe
+Germany,3,3,1,7,Bobsleigh,Europe
+USA,1,1,1,3,Bobsleigh,America
+Canada,0,0,2,2,Bobsleigh,America
+Norway,5,1,2,8,Cross-Country Skiing,Europe
+Russia,4,4,3,11,Cross-Country Skiing,Europe
+Finland,1,2,3,6,Cross-Country Skiing,Europe
+Sweden,1,2,1,4,Cross-Country Skiing,Europe
+Germany,1,1,0,2,Cross-Country Skiing,Europe
+USA,0,1,1,2,Cross-Country Skiing,America
+Italy,0,1,0,1,Cross-Country Skiing,Europe
+Austria,0,0,1,1,Cross-Country Skiing,Europe
+France,0,0,1,1,Cross-Country Skiing,Europe
+England,1,1,0,2,Curling,Europe
+Sweden,1,0,2,3,Curling,Europe
+Italy,1,0,0,1,Curling,Europe
+Japan,0,1,0,1,Curling,Asia
+Norway,0,1,0,1,Curling,Europe
+Canada,0,0,1,1,Curling,America
+Russia,2,3,1,6,Figure Skating,Europe
+USA,1,1,1,3,Figure Skating,America
+China,1,0,0,1,Figure Skating,Asia
+France,1,0,0,1,Figure Skating,Europe
+Japan,0,1,3,4,Figure Skating,Asia
+China,4,2,0,6,Freestyle Skiing,Asia
+USA,2,4,2,8,Freestyle Skiing,America
+Switzerland,2,1,1,4,Freestyle Skiing,Europe
+Sweden,2,0,2,4,Freestyle Skiing,Europe
+Australia,1,0,0,1,Freestyle Skiing,Pacific
+Norway,1,0,0,1,Freestyle Skiing,Europe
+New Zealand,1,0,0,1,Freestyle Skiing,Pacific
+Canada,0,3,2,5,Freestyle Skiing,America
+Belarus,0,1,0,1,Freestyle Skiing,Europe
+France,0,1,0,1,Freestyle Skiing,Europe
+Ukraine,0,1,0,1,Freestyle Skiing,Europe
+Russia,0,0,3,3,Freestyle Skiing,Europe
+Estonia,0,0,1,1,Freestyle Skiing,Europe
+Germany,0,0,1,1,Freestyle Skiing,Europe
+Japan,0,0,1,1,Freestyle Skiing,Asia
+Finland,1,0,1,2,Ice  Hockey,Europe
+Canada,1,0,0,1,Ice  Hockey,America
+Russia,0,1,0,1,Ice  Hockey,Europe
+USA,0,1,0,1,Ice  Hockey,America
+Slovakia,0,0,1,1,Ice  Hockey,Europe
+Germany,4,2,0,6,Luge,Europe
+Austria,0,2,1,3,Luge,Europe
+Italy,0,0,1,1,Luge,Europe
+Latvia,0,0,1,1,Luge,Europe
+Russia,0,0,1,1,Luge,Europe
+Norway,2,2,0,4,Nordic Combined,Europe
+Germany,1,1,0,2,Nordic Combined,Europe
+Japan,0,0,2,2,Nordic Combined,Asia
+Austria,0,0,1,1,Nordic Combined,Europe
+South Korea,2,3,0,5,Short Track Speed Skating,Asia
+China,2,1,1,4,Short Track Speed Skating,Asia
+Netherlands,2,1,1,4,Short Track Speed Skating,Europe
+Italy,1,2,1,4,Short Track Speed Skating,Europe
+Canada,1,1,2,4,Short Track Speed Skating,America
+Hungary,1,0,2,3,Short Track Speed Skating,Europe
+Russia,0,1,1,2,Short Track Speed Skating,Europe
+Belgium,0,0,1,1,Short Track Speed Skating,Europe
+Germany,2,1,0,3,Skeleton,Europe
+Australia,0,1,0,1,Skeleton,Pacific
+China,0,0,1,1,Skeleton,Asia
+Netherlands,0,0,1,1,Skeleton,Europe
+Slovenia,2,1,1,4,Ski Jumping,Europe
+Austria,1,1,0,2,Ski Jumping,Europe
+Japan,1,1,0,2,Ski Jumping,Asia
+Norway,1,0,0,1,Ski Jumping,Europe
+Germany,0,1,2,3,Ski Jumping,Europe
+Russia,0,1,0,1,Ski Jumping,Europe
+Canada,0,0,1,1,Ski Jumping,America
+Poland,0,0,1,1,Ski Jumping,Europe
+Austria,3,1,0,4,Snowboard,Europe
+USA,3,1,0,4,Snowboard,America
+Canada,1,1,4,6,Snowboard,America
+China,1,1,0,2,Snowboard,Asia
+New Zealand,1,1,0,2,Snowboard,Pacific
+Japan,1,0,2,3,Snowboard,Asia
+Czech Republic,1,0,0,1,Snowboard,Europe
+Australia,0,1,1,2,Snowboard,Pacific
+Italy,0,1,1,2,Snowboard,Europe
+Slovenia,0,1,1,2,Snowboard,Europe
+Spain,0,1,0,1,Snowboard,Europe
+France,0,1,0,1,Snowboard,Europe
+Norway,0,1,0,1,Snowboard,Europe
+Russia,0,0,1,1,Snowboard,Europe
+Switzerland,0,0,1,1,Snowboard,Europe
+Netherlands,6,4,2,12,Speed Skating,Europe
+Sweden,2,0,0,2,Speed Skating,Europe
+Canada,1,3,1,5,Speed Skating,America
+Japan,1,3,1,5,Speed Skating,Asia
+Norway,1,0,2,3,Speed Skating,Europe
+USA,1,0,2,3,Speed Skating,America
+Belgium,1,0,0,1,Speed Skating,Europe
+China,1,0,0,1,Speed Skating,Asia
+South Korea,0,2,2,4,Speed Skating,Asia
+Italy,0,1,2,3,Speed Skating,Europe
+Russia,0,1,1,2,Speed Skating,Europe
+Czech Republic,0,0,1,1,Speed Skating,Europe

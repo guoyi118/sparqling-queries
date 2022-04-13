@@ -372,6 +372,24 @@ class SimpleT5:
                 f"{model_name}", return_dict=True
             )
 
+         ##This line is updated
+        special_tokens_dict = {'additional_special_tokens': ['<tbl>', '</tbl>', '</col>', '<col>']}
+        self.tokenizer.add_special_tokens(special_tokens_dict)
+
+        new_token = []
+        for i in range(20):
+            new_token.append('<tbl%s>'%(i))
+            new_token.append('<CAT%s>'%(i))
+            new_token.append('<NUM%s>'%(i))
+            new_token.append('<TEP%s>'%(i))
+
+
+        self.tokenizer.add_tokens(new_token)
+        self.model.resize_token_embeddings(len(self.tokenizer))
+
+        
+        
+
     def train(
         self,
         train_df: pd.DataFrame,
@@ -479,6 +497,7 @@ class SimpleT5:
             self.model = BartForConditionalGeneration.from_pretrained(f"{model_dir}")
             self.tokenizer = BartTokenizer.from_pretrained(f"{model_dir}")
 
+        print(self.tokenizer.all_special_tokens)
         if use_gpu:
             if torch.cuda.is_available():
                 self.device = torch.device("cuda")
@@ -563,17 +582,17 @@ class SimpleT5:
 # train_data_df.to_csv('train_data_df.csv', index=False)
 # dev_data_df.to_csv('dev_data_df.csv', index=False)
 
-# train_data_df = pd.read_csv('/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/train_data_df_spider.csv')
-# dev_data_df = pd.read_csv('/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/val_data_df_spider.csv')
+# train_data_df = pd.read_csv('/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/train_data_df_spider_abstract.csv')
+# dev_data_df = pd.read_csv('/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/val_data_df_spider_abstract.csv')
 
-# ~~~~~~~model_training~~~~~~~~~~~~~~~
+# # ~~~~~~~model_training~~~~~~~~~~~~~~~
 
 # model = SimpleT5()
 # model.from_pretrained("t5","t5-base")
 
 # model.train(train_df=train_data_df, # pandas dataframe with 2 columns: source_text & target_text
 #             eval_df=dev_data_df, # pandas dataframe with 2 columns: source_text & target_text
-#             source_max_token_len = 128, 
+#             source_max_token_len = 256, 
 #             target_max_token_len = 256,
 #             batch_size = 8,
 #             max_epochs = 20,
@@ -589,12 +608,21 @@ class SimpleT5:
 
 # model = SimpleT5()
 
-# model.load_model("t5","/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/outputs/devtrain_mix_simplet5-epoch-10-train-loss-0.0958-val-loss-0.0326", use_gpu=False)
-# model_output = model.predict("What is the maximum miles per gallon of the car with 8 cylinders or produced before 1980?", num_return_sequences=5, num_beams=5)
+# model.load_model("t5","/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/outputs/simplet5-epoch-19-train-loss-0.0335-val-loss-0.2585", use_gpu=True)
+# model.load_model("t5","/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/outputs/simplet5-epoch-19-train-loss-0.0373-val-loss-0.7082", use_gpu=True)
+# model.load_model("t5","/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/outputs/3.simplet5-epoch-19-train-loss-0.0291-val-loss-0.3099", use_gpu=True)
+# model.load_model("t5","/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/outputs/4.simplet5-epoch-19-train-loss-0.0348-val-loss-0.2246", use_gpu=False)
+# model.load_model("t5","/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/outputs/simplet5-epoch-19-train-loss-0.2482-val-loss-0.8455", use_gpu=True)
+
+
+# model_output = model.predict(
+# "What is the average income for different education level? <tbl> education_salary </tbl> <col> ID Name Education_Level Career Salary </col>"
+# )
+
 # print(model_output[0])
 
 # ~~~~~~~~~~~predict~~~~~~~~~~~~~~~~~~~~~
-# evl_df = pd.read_csv('/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/train_data_df_spider.csv')
+# evl_df = pd.read_csv('/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/val_data_df_spider_v2.csv')
 # evl_data = [evl_df['question_id'], evl_df['question_text'], evl_df['program']]
 # evl_data_header =  ["id","source_text", "target_text"]
 # evl_data_df = pd.concat(evl_data, axis=1, keys=evl_data_header)
@@ -635,7 +663,7 @@ class SimpleT5:
 
 # device = 0
 # print('~~~~~~dev_device~~~~~~', device)
-# train_data_df = pd.read_csv('/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/val_data_df_spider.csv')
+# train_data_df = pd.read_csv('/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/val_data_df_spider_v2.csv')
 
 # train_data = [train_spider['question_id'], train_spider['question_text'], train_spider['program']]
 # train_data_header =  ["id","source_text", "target_text"]
@@ -654,11 +682,13 @@ class SimpleT5:
 
 # model = SimpleT5()
 
-# model.load_model("t5","/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/outputs/simplet5-epoch-19-train-loss-0.0373-val-loss-0.7082", use_gpu=True)
+# model.load_model("t5","/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/outputs/simplet5-epoch-19-train-loss-0.0348-val-loss-0.2246", use_gpu=True)
 
 # alternatives = []
 
 # question = []
+
+# modify_type = []
 
 # for source, target in tqdm.tqdm(zip(sample_source,sample_target), total=len(sample_source)):
 #     outputs = model.predict(source, num_return_sequences=5, num_beams=5)
@@ -671,25 +701,59 @@ class SimpleT5:
 #     model_outputs.append(output)
 #     alternatives.append(alt)
 #     ops = output.split(', ')
+#     modify_type.append('beam')
 #     # order modify alternatives
-#     if len(ops) >3:
-#         fliped_id = random.sample(range(1,len(ops)),2)
-#         ops[fliped_id[0]], ops[fliped_id[1]] = ops[fliped_id[1]], ops[fliped_id[0]]
+    
+#     comparative_idx = [x for x in range(len(ops)) if 'comparative' in ops[x]]
+#     if len(ops)>=5:
+#         if len(comparative_idx)==2:
+#             ops[comparative_idx[0]], ops[comparative_idx[1]] = ops[comparative_idx[1]], ops[comparative_idx[0]]
+#             question.append(source)
+#             model_outputs.append(output)
+#             alternatives.append((', ').join(ops))
+#             modify_type.append('compara_order')
+#         elif len(comparative_idx)>2:
+#             fliped_id = random.sample(comparative_idx,2)
+#             ops[fliped_id[0]], ops[fliped_id[1]] = ops[fliped_id[1]], ops[fliped_id[0]]
+#             question.append(source)
+#             model_outputs.append(output)
+#             alternatives.append((', ').join(ops))
+#             modify_type.append('compara_order')
+#         else:
+#             fliped_id = random.sample(range(1,len(ops)),2)
+#             ops[fliped_id[0]], ops[fliped_id[1]] = ops[fliped_id[1]], ops[fliped_id[0]]
+#             question.append(source)
+#             model_outputs.append(output)
+#             alternatives.append((', ').join(ops))
+#             modify_type.append('order')
+
+#     if len(comparative_idx)>=2:
+#         pass 
+#     else:   
+#         for i in range(len(ops)):
+#             comparative_idx = [x for x in range(len(ops)) if 'comparative' in ops[x]]
+#             operators = ['great/','less/',' equal', 'greatequal/', 'lessequal/']
+#             if any(x in ops[i] for x in operators):
+#                 ops[i] = ops[i].replace([x for x in operators if x in ops[i]][0], random.choice([x for x in operators if x not in ops[i]]))
+        
 #         question.append(source)
 #         model_outputs.append(output)
 #         alternatives.append((', ').join(ops))
+#         modify_type.append('greate/less')
 
 #     # correction answer alternatives
 #     if output != target:
 #         question.append(source)
 #         model_outputs.append(output)
 #         alternatives.append(target)
+#         modify_type.append('gt')
 
 
-# alternative_data = list(zip(question, model_outputs, alternatives))
-# alternative_data_header =  ["source_text", "output_text", "alt_text"]
+
+# alternative_data = list(zip(question, model_outputs, alternatives, modify_type))
+# alternative_data_header =  ["source_text", "output_text", "alt_text", "modify_type"]
 # alternative_data_df = pd.DataFrame(alternative_data, columns=alternative_data_header)
-# alternative_data_df.to_csv('dev_alter_dataset_V5_device_%s.csv'%(device),index=False)
+# alternative_data_df.to_csv('dev_alter_dataset_V8_device_%s.csv'%(device),index=False)
 
 
 # df1 = pd.read_csv('train_alter_dataset_V3_device_0.csv')
@@ -717,45 +781,45 @@ class SimpleT5:
     
 # Open a csv reader called DictReader
 
-# def make_json(csvFilePath, jsonFilePath):
+def make_json(csvFilePath, jsonFilePath):
      
-#     # create a dictionary
-#     data = []
+    # create a dictionary
+    data = []
      
-#     # Open a csv reader called DictReader
-#     with open(csvFilePath, encoding='utf-8') as csvf:
-#         csvReader = csv.DictReader(csvf)
+    # Open a csv reader called DictReader
+    with open(csvFilePath, encoding='utf-8') as csvf:
+        csvReader = csv.DictReader(csvf)
          
-#         # Convert each row into a dictionary
-#         # and add it to data
-#         for rows in csvReader:
-#             line = {}
-#             # line['id'] = rows['id']
-#             line['input'] = rows['source_text']
-#             line['prediction'] = rows['output_text']
-#             line['alternatives'] = rows['alt_text']
+        # Convert each row into a dictionary
+        # and add it to data
+        for rows in csvReader:
+            line = {}
+            # line['id'] = rows['id']
+            line['input'] = rows['source_text']
+            line['prediction'] = rows['output_text']
+            line['alternatives'] = rows['alt_text']
 
-#             data.append(line)
+            data.append(line)
     
-#     random.shuffle(data)
-#     random.shuffle(data)
+    random.shuffle(data)
+    random.shuffle(data)
 
-#     # Open a json writer, and use the json.dumps()
-#     # function to dump data
-#     with jsonlines.open(jsonFilePath, "w") as f:
-#         f.write_all(data)
+    # Open a json writer, and use the json.dumps()
+    # function to dump data
+    with jsonlines.open(jsonFilePath, "w") as f:
+        f.write_all(data)
 
-# csvFilePath = 'train_alter_dataset_V5_device_0.csv'
-# jsonFilePath = 'train_alter_v5.jsonl'
+# csvFilePath = '/home/sdq/GitHub/text-to-viz/models/switch_network/train_alter_dataset_V9_.csv'
+# jsonFilePath = '/home/sdq/GitHub/text-to-viz/models/switch_network/train_alter_v9.jsonl'
  
-# # # Call the make_json function
+# # Call the make_json function
 # make_json(csvFilePath, jsonFilePath)
 
 
-# csvFilePath = 'dev_alter_dataset_V5_device_0.csv'
-# jsonFilePath = 'dev_alter_v5.jsonl'
+# csvFilePath = '/home/sdq/GitHub/text-to-viz/models/switch_network/dev_alter_dataset_V9_.csv'
+# jsonFilePath = '/home/sdq/GitHub/text-to-viz/models/switch_network/dev_alter_v9.jsonl'
  
-# # # Call the make_json function
+# # Call the make_json function
 # make_json(csvFilePath, jsonFilePath)
 
 #~
@@ -793,3 +857,34 @@ class SimpleT5:
     
 #     pbar.set_postfix(em=em, wrong=wrong, accuracy=(em/(em+wrong)))
 
+
+def make_json_lstm(csvFilePath, jsonFilePath):
+     
+    # create a dictionary
+    data = []
+     
+    # Open a csv reader called DictReader
+    with open(csvFilePath, encoding='utf-8') as csvf:
+        csvReader = csv.DictReader(csvf)
+         
+        # Convert each row into a dictionary
+        # and add it to data
+        for rows in csvReader:
+            line = {}
+            # line['id'] = rows['id']
+            line['source_text'] = rows['source_text']
+            line['target_text'] = rows['target_text']
+
+            data.append(line)
+    
+    random.shuffle(data)
+    random.shuffle(data)
+
+    # Open a json writer, and use the json.dumps()
+    # function to dump data
+    with jsonlines.open(jsonFilePath, "w") as f:
+        f.write_all(data)
+
+csvFilePath = '/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/val_data_df_spider_v3_full.csv'
+jsonFilePath = '/home/sdq/GitHub/guoyi/sparqling-queries/data/break/logical-forms-fixed/val_data_df_spider_v3_full.jsonl'
+make_json_lstm(csvFilePath, jsonFilePath)
